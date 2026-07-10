@@ -20,12 +20,10 @@ concurrency:
 
 jobs:
   build-release:
-    name: Test, build, and publish Linux AMD64
+    name: Test, build, and publish Linux AMD64/ARM64
     runs-on: ubuntu-latest
     env:
       RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.release_tag }}
-      ARCHIVE_NAME: x-ui-linux-amd64.tar.gz
-      CHECKSUM_NAME: x-ui-linux-amd64.sha256
 
     steps:
       - name: Check out source
@@ -41,6 +39,7 @@ jobs:
             echo "Invalid release tag: $RELEASE_TAG" >&2
             exit 1
           fi
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -78,6 +77,11 @@ jobs:
           CGO_ENABLED: '1'
         run: go test ./...
 
+      - name: Install ARM64 cross compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes gcc-aarch64-linux-gnu
+
       - name: Build Linux AMD64 binary
         env:
           GOOS: linux
@@ -85,26 +89,49 @@ jobs:
           CGO_ENABLED: '1'
         run: go build -o x-ui .
 
+      - name: Build Linux ARM64 binary
+        env:
+          GOOS: linux
+          GOARCH: arm64
+          CGO_ENABLED: '1'
+          CC: aarch64-linux-gnu-gcc
+        run: go build -o x-ui-linux-arm64-bin .
+
       - name: Package release artifact
         shell: bash
         run: |
           set -euo pipefail
           test -x x-ui
+          test -x x-ui-linux-arm64-bin
           test -f internal/web/dist/index.html
-          mkdir -p x-ui-linux-amd64
-          install -m 0755 x-ui x-ui-linux-amd64/x-ui
-          install -m 0755 release/install.sh x-ui-linux-amd64/install.sh
-          install -m 0755 release/rollback.sh x-ui-linux-amd64/rollback.sh
-          tar -czf "$ARCHIVE_NAME" x-ui-linux-amd64
-          sha256sum "$ARCHIVE_NAME" > "$CHECKSUM_NAME"
+          for arch in amd64 arm64; do
+            directory="x-ui-linux-$arch"
+            archive="$directory.tar.gz"
+            checksum="$directory.sha256"
+            mkdir -p "$directory"
+            binary="x-ui-linux-$arch-bin"
+            [[ "$arch" == "amd64" ]] && binary="x-ui"
+            install -m 0755 "$binary" "$directory/x-ui"
+            install -m 0755 install.sh "$directory/install.sh"
+            install -m 0755 update.sh "$directory/update.sh"
+            install -m 0755 uninstall.sh "$directory/uninstall.sh"
+            install -m 0755 release/rollback.sh "$directory/rollback.sh"
+            tar -czf "$archive" "$directory"
+            sha256sum "$archive" > "$checksum"
+          done
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: x-ui-linux-amd64
+          name: x-ui-linux-release
           path: |
             x-ui-linux-amd64.tar.gz
             x-ui-linux-amd64.sha256
+            x-ui-linux-arm64.tar.gz
+            x-ui-linux-arm64.sha256
+            install.sh
+            update.sh
+            uninstall.sh
           if-no-files-found: error
 
       - name: Create GitHub Release
@@ -129,9 +156,15 @@ jobs:
             gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$release_id" \
               -f "name=$RELEASE_TAG" \
               -F "body=@release-notes.md" >/dev/null
-            gh release upload "$RELEASE_TAG" "$ARCHIVE_NAME" "$CHECKSUM_NAME" --clobber
+            gh release upload "$RELEASE_TAG" \
+              x-ui-linux-amd64.tar.gz x-ui-linux-amd64.sha256 \
+              x-ui-linux-arm64.tar.gz x-ui-linux-arm64.sha256 \
+              install.sh update.sh uninstall.sh --clobber
           else
-            gh release create "$RELEASE_TAG" "$ARCHIVE_NAME" "$CHECKSUM_NAME" \
+            gh release create "$RELEASE_TAG" \
+              x-ui-linux-amd64.tar.gz x-ui-linux-amd64.sha256 \
+              x-ui-linux-arm64.tar.gz x-ui-linux-arm64.sha256 \
+              install.sh update.sh uninstall.sh \
               --target "$GITHUB_SHA" \
               --title "$RELEASE_TAG" \
               --notes-file release-notes.md
