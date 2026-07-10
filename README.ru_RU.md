@@ -70,19 +70,29 @@
 ## Быстрый старт
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Nullfill/3x-ui-new/main/install.sh)
 ```
 
-Чтобы установить конкретную версию, добавьте её тег (например, `v3.4.0`):
+Чтобы установить конкретную версию, добавьте её тег:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v3.4.0
+bash <(curl -Ls https://raw.githubusercontent.com/Nullfill/3x-ui-new/main/install.sh) v3.4.2-multiplier-1
 ```
 
-Чтобы установить скользящую **dev**-сборку (новейший предварительный релиз по каждому коммиту из ветки `main`, а не стабильный релиз), передайте `dev-latest`:
+## Множитель использования трафика
+
+Множитель применяется только к будущему трафику и не изменяет существующие счётчики. Администратор может задавать целые или десятичные коэффициенты. По умолчанию функция отключена.
+
+## Обновление
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) dev-latest
+bash <(curl -Ls https://raw.githubusercontent.com/Nullfill/3x-ui-new/main/update.sh)
+```
+
+## Удаление
+
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/Nullfill/3x-ui-new/main/uninstall.sh)
 ```
 
 Во время установки генерируются случайные имя пользователя, пароль и путь доступа. После установки выполните `x-ui`, чтобы открыть меню управления, где можно запускать/останавливать сервис, просматривать или сбрасывать учётные данные для входа, управлять SSL-сертификатами и многое другое.

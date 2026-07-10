@@ -70,19 +70,29 @@
 ## شروع سریع
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Nullfill/3x-ui-new/main/install.sh)
 ```
 
-برای نصب یک نسخه‌ی مشخص، تگ آن را در انتها اضافه کنید (مثلاً `v3.4.0`):
+برای نصب یک نسخه‌ی مشخص، تگ آن را در انتها اضافه کنید:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v3.4.0
+bash <(curl -Ls https://raw.githubusercontent.com/Nullfill/3x-ui-new/main/install.sh) v3.4.2-multiplier-1
 ```
 
-برای نصب نسخه‌ی غلتانِ **dev** (آخرین پیش‌انتشار به‌ازای هر کامیت از شاخه‌ی `main`، نه یک انتشار پایدار)، مقدار `dev-latest` را پاس دهید:
+## ضریب مصرف ترافیک
+
+ضریب مصرف ترافیک فقط روی ترافیک آینده اعمال می‌شود و شمارنده‌های مصرف قبلی را تغییر نمی‌دهد. مدیر پنل می‌تواند ضریب صحیح یا اعشاری را تنظیم کند. این قابلیت به‌صورت پیش‌فرض غیرفعال است.
+
+## به‌روزرسانی
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) dev-latest
+bash <(curl -Ls https://raw.githubusercontent.com/Nullfill/3x-ui-new/main/update.sh)
+```
+
+## حذف
+
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/Nullfill/3x-ui-new/main/uninstall.sh)
 ```
 
 در حین نصب، یک نام کاربری، رمز عبور و مسیر دسترسی تصادفی تولید می‌شود. پس از نصب، دستور `x-ui` را اجرا کنید تا منوی مدیریت باز شود؛ در آنجا می‌توانید سرویس را شروع/متوقف کنید، اطلاعات ورود خود را ببینید یا بازنشانی کنید، گواهی‌های SSL را مدیریت کنید و کارهای دیگری انجام دهید.

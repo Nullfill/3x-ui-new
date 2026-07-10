@@ -70,19 +70,29 @@ Construido como un fork mejorado del proyecto X-UI original, 3X-UI añade un sop
 ## Inicio Rápido
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Nullfill/3x-ui-new/main/install.sh)
 ```
 
-Para instalar una versión específica, añade su etiqueta (p. ej. `v3.4.0`):
+Para instalar una versión específica, añade su etiqueta:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v3.4.0
+bash <(curl -Ls https://raw.githubusercontent.com/Nullfill/3x-ui-new/main/install.sh) v3.4.2-multiplier-1
 ```
 
-Para instalar la versión **dev** continua (la última prelanzamiento por commit desde `main`, no una versión estable), pasa `dev-latest`:
+## Multiplicador de uso de tráfico
+
+El multiplicador se aplica únicamente al tráfico futuro y no modifica los contadores existentes. El administrador puede configurar factores enteros o decimales. La función está desactivada de forma predeterminada.
+
+## Actualización
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) dev-latest
+bash <(curl -Ls https://raw.githubusercontent.com/Nullfill/3x-ui-new/main/update.sh)
+```
+
+## Desinstalación
+
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/Nullfill/3x-ui-new/main/uninstall.sh)
 ```
 
 Durante la instalación se generan un nombre de usuario, una contraseña y una ruta de acceso aleatorios. Tras la instalación, ejecuta `x-ui` para abrir el menú de gestión, donde puedes iniciar/detener el servicio, ver o restablecer tus credenciales de acceso, gestionar certificados SSL y mucho más.

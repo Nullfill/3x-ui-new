@@ -70,19 +70,29 @@ Orijinal X-UI projesinin geliştirilmiş bir çatallaması (fork) olarak inşa e
 ## Hızlı Başlangıç
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Nullfill/3x-ui-new/main/install.sh)
 ```
 
-Belirli bir sürümü kurmak için, etiketini (ör. `v3.4.0`) ekleyin:
+Belirli bir sürümü kurmak için etiketini ekleyin:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v3.4.0
+bash <(curl -Ls https://raw.githubusercontent.com/Nullfill/3x-ui-new/main/install.sh) v3.4.2-multiplier-1
 ```
 
-Sürekli güncellenen **dev** sürümünü (kararlı bir sürüm değil; `main` dalından her commit'te oluşturulan en son ön sürüm) kurmak için `dev-latest` değerini geçirin:
+## Trafik Kullanım Çarpanı
+
+Çarpan yalnızca gelecekteki trafiğe uygulanır ve mevcut kullanım sayaçlarını değiştirmez. Yönetici tam sayı veya ondalık faktörler ayarlayabilir. Özellik varsayılan olarak kapalıdır.
+
+## Güncelleme
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) dev-latest
+bash <(curl -Ls https://raw.githubusercontent.com/Nullfill/3x-ui-new/main/update.sh)
+```
+
+## Kaldırma
+
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/Nullfill/3x-ui-new/main/uninstall.sh)
 ```
 
 Kurulum sırasında rastgele bir kullanıcı adı, şifre ve erişim yolu oluşturulur. Kurulumdan sonra, hizmeti başlatabileceğiniz/durdurabileceğiniz, giriş bilgilerinizi görüntüleyebileceğiniz veya sıfırlayabileceğiniz, SSL sertifikalarını yönetebileceğiniz ve çok daha fazlasını yapabileceğiniz yönetim menüsünü açmak için terminalde `x-ui` komutunu çalıştırın.
