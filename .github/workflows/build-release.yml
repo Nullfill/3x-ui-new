@@ -1,0 +1,135 @@
+name: Build multiplier release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag (for example v3.4.2-multiplier-1)
+        required: true
+        default: v3.4.2-multiplier-1
+  push:
+    tags:
+      - 'v3.4.2-multiplier-*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: multiplier-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-release:
+    name: Test, build, and publish Linux AMD64
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.release_tag }}
+      ARCHIVE_NAME: x-ui-linux-amd64.tar.gz
+      CHECKSUM_NAME: x-ui-linux-amd64.sha256
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^v3\.4\.2-multiplier-[0-9]+$ ]]; then
+            echo "Invalid release tag: $RELEASE_TAG" >&2
+            exit 1
+          fi
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Test frontend
+        working-directory: frontend
+        run: |
+          npm run typecheck
+          npm test
+
+      - name: Build embedded frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+          cache: true
+
+      - name: Download Go modules
+        run: go mod download
+
+      - name: Test backend
+        env:
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: '1'
+        run: go test ./...
+
+      - name: Build Linux AMD64 binary
+        env:
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: '1'
+        run: go build -o x-ui .
+
+      - name: Package release artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x x-ui
+          test -f internal/web/dist/index.html
+          mkdir -p x-ui-linux-amd64
+          install -m 0755 x-ui x-ui-linux-amd64/x-ui
+          install -m 0755 release/install.sh x-ui-linux-amd64/install.sh
+          install -m 0755 release/rollback.sh x-ui-linux-amd64/rollback.sh
+          tar -czf "$ARCHIVE_NAME" x-ui-linux-amd64
+          sha256sum "$ARCHIVE_NAME" > "$CHECKSUM_NAME"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: x-ui-linux-amd64
+          path: |
+            x-ui-linux-amd64.tar.gz
+            x-ui-linux-amd64.sha256
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > release-notes.md <<'NOTES'
+          ## Traffic Usage Multiplier release
+
+          - Based on upstream 3x-ui v3.4.2.
+          - Added a safe, future-only traffic usage multiplier.
+          - Existing traffic is not modified.
+          - The multiplier is applied only to future usage deltas.
+          - Supports decimal multiplier factors.
+          - Supports multi-node traffic accounting without repeated compounding.
+          NOTES
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" --title "$RELEASE_TAG" --notes-file release-notes.md
+            gh release upload "$RELEASE_TAG" "$ARCHIVE_NAME" "$CHECKSUM_NAME" --clobber
+          else
+            gh release create "$RELEASE_TAG" "$ARCHIVE_NAME" "$CHECKSUM_NAME" \
+              --target "$GITHUB_SHA" \
+              --title "$RELEASE_TAG" \
+              --notes-file release-notes.md
+          fi
