@@ -125,7 +125,10 @@ jobs:
           NOTES
 
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release edit "$RELEASE_TAG" --title "$RELEASE_TAG" --notes-file release-notes.md
+            release_id="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" --jq .id)"
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$release_id" \
+              -f "name=$RELEASE_TAG" \
+              -F "body=@release-notes.md" >/dev/null
             gh release upload "$RELEASE_TAG" "$ARCHIVE_NAME" "$CHECKSUM_NAME" --clobber
           else
             gh release create "$RELEASE_TAG" "$ARCHIVE_NAME" "$CHECKSUM_NAME" \
