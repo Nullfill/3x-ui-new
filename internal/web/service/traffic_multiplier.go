@@ -8,6 +8,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -95,12 +96,59 @@ func applyTrafficMultiplier(tx *gorm.DB, config trafficMultiplierConfig, sourceN
 	billedUp, billedDown := multipliedTrafficDelta(rawUp, rawDown, config)
 	state.LastBilledUp += billedUp
 	state.LastBilledDown += billedDown
+	extraUp, extraDown := multiplierExtraDelta(rawUp, rawDown, billedUp, billedDown)
+	state.ExtraUp += extraUp
+	state.ExtraDown += extraDown
 	state.Factor = config.Factor
 	state.Enabled = config.Enabled
 	if err := tx.Save(&state).Error; err != nil {
 		return 0, 0, err
 	}
 	return billedUp, billedDown, nil
+}
+
+func multiplierExtraDelta(rawUp, rawDown, billedUp, billedDown int64) (int64, int64) {
+	return max(billedUp-rawUp, 0), max(billedDown-rawDown, 0)
+}
+
+func attachTrafficMultiplierUsage(tx *gorm.DB, traffics []xray.ClientTraffic) error {
+	if len(traffics) == 0 {
+		return nil
+	}
+	emails := make([]string, 0, len(traffics))
+	for i := range traffics {
+		if traffics[i].Email != "" {
+			emails = append(emails, traffics[i].Email)
+		}
+	}
+	config, err := loadTrafficMultiplierConfig(tx)
+	if err != nil {
+		return err
+	}
+	var states []model.TrafficMultiplierState
+	for _, batch := range chunkStrings(uniqueNonEmptyStrings(emails), sqlInChunk) {
+		var page []model.TrafficMultiplierState
+		if err := tx.Where("client_email IN ?", batch).Find(&page).Error; err != nil {
+			return err
+		}
+		states = append(states, page...)
+	}
+	type extraTraffic struct{ up, down int64 }
+	extraByEmail := make(map[string]extraTraffic, len(states))
+	for i := range states {
+		current := extraByEmail[states[i].ClientEmail]
+		current.up += states[i].ExtraUp
+		current.down += states[i].ExtraDown
+		extraByEmail[states[i].ClientEmail] = current
+	}
+	for i := range traffics {
+		extra := extraByEmail[traffics[i].Email]
+		traffics[i].MultiplierExtraUp = extra.up
+		traffics[i].MultiplierExtraDown = extra.down
+		traffics[i].MultiplierFactor = config.Factor
+		traffics[i].MultiplierEnabled = config.Enabled
+	}
+	return nil
 }
 
 func refreshTrafficMultiplierConfiguration(db *gorm.DB, enabled bool, factor float64) error {

@@ -12,6 +12,8 @@ type TrafficMultiplierState struct {
 	LastRawDown    int64   `json:"lastRawDown" gorm:"not null;default:0"`
 	LastBilledUp   int64   `json:"lastBilledUp" gorm:"not null;default:0"`
 	LastBilledDown int64   `json:"lastBilledDown" gorm:"not null;default:0"`
+	ExtraUp        int64   `json:"extraUp" gorm:"not null;default:0"`
+	ExtraDown      int64   `json:"extraDown" gorm:"not null;default:0"`
 	Factor         float64 `json:"factor" gorm:"not null;default:1"`
 	Enabled        bool    `json:"enabled" gorm:"not null;default:false"`
 	CreatedAt      int64   `json:"createdAt" gorm:"autoCreateTime:milli"`

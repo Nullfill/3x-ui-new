@@ -903,6 +903,25 @@ export default function ClientsPage() {
       ),
     },
     {
+      title: t('pages.clients.multiplierUsage'),
+      key: 'multiplierUsage',
+      width: 180,
+      render: (_v, record) => {
+        const extraUp = record.traffic?.multiplierExtraUp ?? 0;
+        const extraDown = record.traffic?.multiplierExtraDown ?? 0;
+        const factor = record.traffic?.multiplierFactor ?? 1;
+        const enabled = record.traffic?.multiplierEnabled ?? false;
+        return (
+          <Tooltip title={`${t('pages.clients.multiplierExtraUp')}: ${SizeFormatter.sizeFormat(extraUp)} · ${t('pages.clients.multiplierExtraDown')}: ${SizeFormatter.sizeFormat(extraDown)}`}>
+            <Space size={6}>
+              <span>{SizeFormatter.sizeFormat(extraUp + extraDown)}</span>
+              {enabled && <Tag color="purple" style={{ margin: 0 }}>×{factor}</Tag>}
+            </Space>
+          </Tooltip>
+        );
+      },
+    },
+    {
       title: t('pages.clients.remaining'),
       key: 'remaining',
       width: 130,

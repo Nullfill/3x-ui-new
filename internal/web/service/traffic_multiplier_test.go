@@ -55,3 +55,14 @@ func TestTrafficMultiplierRejectsNegativeDelta(t *testing.T) {
 		t.Fatalf("negative/reset delta was billed: up=%d down=%d", up, down)
 	}
 }
+
+func TestTrafficMultiplierExtraUsageReport(t *testing.T) {
+	up, down := multiplierExtraDelta(100, 500, 200, 1000)
+	if up != 100 || down != 500 {
+		t.Fatalf("reported extra traffic mismatch: up=%d down=%d", up, down)
+	}
+	up, down = multiplierExtraDelta(100, 500, 100, 500)
+	if up != 0 || down != 0 {
+		t.Fatalf("factor one reported extra traffic: up=%d down=%d", up, down)
+	}
+}
