@@ -215,6 +215,32 @@ export default function GeneralTab({ allSetting, updateSetting }: GeneralTabProp
                 onChange={(v) => updateSetting({ restartXrayOnClientDisable: v })} />
             </SettingListItem>
 
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.trafficMultiplierEnabled')}
+              description={t('pages.settings.trafficMultiplierHelp')}
+            >
+              <Switch checked={allSetting.trafficMultiplierEnabled}
+                onChange={(v) => updateSetting({ trafficMultiplierEnabled: v })} />
+            </SettingListItem>
+
+            <SettingListItem
+              paddings="small"
+              title={t('pages.settings.trafficMultiplierFactor')}
+              description={t('pages.settings.trafficMultiplierWarning')}
+            >
+              <InputNumber
+                value={allSetting.trafficMultiplierFactor || 1}
+                min={1}
+                max={10}
+                step={0.25}
+                precision={2}
+                disabled={!allSetting.trafficMultiplierEnabled}
+                style={{ width: '100%' }}
+                onChange={(v) => updateSetting({ trafficMultiplierFactor: v == null ? 1 : Number(v) })}
+              />
+            </SettingListItem>
+
             <SettingListItem paddings="small" title={t('pages.settings.language')}>
               <Select
                 value={lang}

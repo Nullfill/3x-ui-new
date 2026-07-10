@@ -32,11 +32,13 @@ type AllSetting struct {
 	PanelOutbound     string `json:"panelOutbound" form:"panelOutbound"`                             // Xray outbound tag for the panel's own outbound HTTP (update checks/downloads, Telegram, geo updates, outbound-subscription fetches)
 
 	// UI settings
-	PageSize       int    `json:"pageSize" form:"pageSize" validate:"gte=0,lte=1000"`      // Number of items per page in lists (0 disables pagination)
-	ExpireDiff     int    `json:"expireDiff" form:"expireDiff" validate:"gte=0"`           // Expiration warning threshold in days
-	TrafficDiff    int    `json:"trafficDiff" form:"trafficDiff" validate:"gte=0,lte=100"` // Traffic warning threshold percentage
-	RemarkTemplate string `json:"remarkTemplate" form:"remarkTemplate"`                    // Subscription remark template ({{VAR}} tokens) rendered per client
-	Datepicker     string `json:"datepicker" form:"datepicker"`                            // Date picker format
+	PageSize                 int     `json:"pageSize" form:"pageSize" validate:"gte=0,lte=1000"`      // Number of items per page in lists (0 disables pagination)
+	ExpireDiff               int     `json:"expireDiff" form:"expireDiff" validate:"gte=0"`           // Expiration warning threshold in days
+	TrafficDiff              int     `json:"trafficDiff" form:"trafficDiff" validate:"gte=0,lte=100"` // Traffic warning threshold percentage
+	TrafficMultiplierEnabled bool    `json:"trafficMultiplierEnabled" form:"trafficMultiplierEnabled"`
+	TrafficMultiplierFactor  float64 `json:"trafficMultiplierFactor" form:"trafficMultiplierFactor" validate:"gte=1,lte=10"`
+	RemarkTemplate           string  `json:"remarkTemplate" form:"remarkTemplate"` // Subscription remark template ({{VAR}} tokens) rendered per client
+	Datepicker               string  `json:"datepicker" form:"datepicker"`         // Date picker format
 
 	// Telegram bot settings
 	TgBotEnable     bool   `json:"tgBotEnable" form:"tgBotEnable"`                    // Enable Telegram bot notifications

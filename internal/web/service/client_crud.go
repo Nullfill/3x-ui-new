@@ -479,6 +479,9 @@ func (s *ClientService) Delete(inboundSvc *InboundService, id int, keepTraffic b
 		if err := clearGlobalTraffic(db, existing.Email); err != nil {
 			return needRestart, err
 		}
+		if err := deleteTrafficMultiplierStates(db, existing.Email); err != nil {
+			return needRestart, err
+		}
 		if err := db.Where("client_email = ?", existing.Email).Delete(&model.InboundClientIps{}).Error; err != nil {
 			return needRestart, err
 		}
@@ -619,6 +622,9 @@ func (s *ClientService) DeleteByEmail(inboundSvc *InboundService, email string, 
 			return needRestart, err
 		}
 		if err := clearGlobalTraffic(db, email); err != nil {
+			return needRestart, err
+		}
+		if err := deleteTrafficMultiplierStates(db, email); err != nil {
 			return needRestart, err
 		}
 		if err := db.Where("client_email = ?", email).Delete(&model.InboundClientIps{}).Error; err != nil {

@@ -196,6 +196,9 @@ func (s *ClientService) DeleteOrphans() (int, error) {
 			}
 		}
 		if len(emails) > 0 {
+			if e := deleteTrafficMultiplierStates(tx, emails...); e != nil {
+				return e
+			}
 			for _, batch := range chunkStrings(emails, sqlInChunk) {
 				if e := tx.Where("email IN ?", batch).Delete(&xray.ClientTraffic{}).Error; e != nil {
 					return e

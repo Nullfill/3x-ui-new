@@ -128,6 +128,10 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 	if len(dbClientTraffics) == 0 {
 		return nil
 	}
+	multiplierConfig, err := loadTrafficMultiplierConfig(tx)
+	if err != nil {
+		return err
+	}
 
 	dbClientTraffics, err = s.adjustTraffics(tx, dbClientTraffics)
 	if err != nil {
@@ -152,12 +156,16 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		if !ok || (t.Up == 0 && t.Down == 0) {
 			continue
 		}
+		billedUp, billedDown, multiplierErr := applyTrafficMultiplier(tx, multiplierConfig, 0, ct.Email, t.Up, t.Down, nil)
+		if multiplierErr != nil {
+			return multiplierErr
+		}
 		if err = tx.Exec(
 			fmt.Sprintf(
 				`UPDATE client_traffics SET up = up + ?, down = down + ?, last_online = %s WHERE email = ?`,
 				database.GreatestExpr("last_online", "?"),
 			),
-			t.Up, t.Down, now, ct.Email,
+			billedUp, billedDown, now, ct.Email,
 		).Error; err != nil {
 			logger.Warning("AddClientTraffic update data ", err)
 		}
@@ -427,6 +435,9 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 	if err = clearGlobalTraffic(tx, renewEmails...); err != nil {
 		return false, 0, err
 	}
+	if err = deleteTrafficMultiplierStates(tx, renewEmails...); err != nil {
+		return false, 0, err
+	}
 	if p != nil {
 		err1 = s.xrayApi.Init(p.GetAPIPort())
 		if err1 != nil {
@@ -470,6 +481,9 @@ func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *mod
 			"reset":       client.Reset,
 		})
 	err := result.Error
+	if err == nil && email != client.Email {
+		err = renameTrafficMultiplierStates(tx, email, client.Email)
+	}
 	return err
 }
 
@@ -478,6 +492,9 @@ func (s *InboundService) DelClientStat(tx *gorm.DB, email string) error {
 		return err
 	}
 	if err := clearGlobalTraffic(tx, email); err != nil {
+		return err
+	}
+	if err := deleteTrafficMultiplierStates(tx, email); err != nil {
 		return err
 	}
 	return tx.Where("email = ?", email).Delete(&model.NodeClientTraffic{}).Error
@@ -497,6 +514,9 @@ func (s *InboundService) delClientStatsByEmails(tx *gorm.DB, emails []string) er
 		if err := tx.Where("email IN ?", batch).Delete(&model.NodeClientTraffic{}).Error; err != nil {
 			return err
 		}
+		if err := deleteTrafficMultiplierStates(tx, batch...); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -512,6 +532,10 @@ func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
 			Updates(map[string]any{"enable": true, "up": 0, "down": 0}).Error; err != nil {
 			return err
 		}
+		if err := deleteTrafficMultiplierStates(db, clientEmail); err != nil {
+			return err
+		}
+		logger.Infof("Traffic multiplier baseline refreshed due to reset for %q", clientEmail)
 		return db.Where("email = ?", clientEmail).Delete(&model.NodeClientTraffic{}).Error
 	})
 }
@@ -605,6 +629,10 @@ func (s *InboundService) resetClientTrafficLocked(id int, clientEmail string) (b
 		if err := tx.Where("email = ?", clientEmail).Delete(&model.NodeClientTraffic{}).Error; err != nil {
 			return err
 		}
+		if err := deleteTrafficMultiplierStates(tx, clientEmail); err != nil {
+			return err
+		}
+		logger.Infof("Traffic multiplier baseline refreshed due to reset for %q", clientEmail)
 		if err := tx.Model(model.Inbound{}).
 			Where("id = ?", id).
 			Update("last_traffic_reset_time", now).Error; err != nil {
@@ -789,6 +817,13 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 	// no out-of-scope inbound still references the email.
 	if id < 0 {
 		err = tx.Where(depletedClause, now).Delete(xray.ClientTraffic{}).Error
+		if err == nil {
+			emails := make([]string, 0, len(depletedEmails))
+			for email := range depletedEmails {
+				emails = append(emails, email)
+			}
+			err = deleteTrafficMultiplierStates(tx, emails...)
+		}
 		return err
 	}
 	emails := make([]string, 0, len(depletedEmails))
@@ -818,6 +853,9 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 	}
 	if len(toDelete) > 0 {
 		if err = tx.Where("LOWER(email) IN ?", toDelete).Delete(xray.ClientTraffic{}).Error; err != nil {
+			return err
+		}
+		if err = deleteTrafficMultiplierStates(tx, toDelete...); err != nil {
 			return err
 		}
 	}

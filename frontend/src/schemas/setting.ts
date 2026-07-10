@@ -17,6 +17,8 @@ export const AllSettingSchema = z.object({
   pageSize: z.number().int().min(0).max(1000).optional(),
   expireDiff: nonNegativeInt.optional(),
   trafficDiff: nonNegativeInt.max(100).optional(),
+  trafficMultiplierEnabled: z.boolean().optional(),
+  trafficMultiplierFactor: z.number().min(1, 'pages.settings.validation.trafficMultiplierRange').max(10, 'pages.settings.validation.trafficMultiplierRange').optional(),
   remarkTemplate: z.string().optional(),
   datepicker: z.enum(['gregorian', 'jalalian']).optional(),
   tgBotEnable: z.boolean().optional(),

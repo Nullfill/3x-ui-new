@@ -379,6 +379,10 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	}()
 
 	structuralChange := false
+	multiplierConfig, err := loadTrafficMultiplierConfig(tx)
+	if err != nil {
+		return false, err
+	}
 
 	newInboundIDs := make(map[int]struct{})
 
@@ -618,6 +622,10 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 					deltaDown = 0
 				}
 			}
+			billedUp, billedDown, multiplierErr := applyTrafficMultiplier(tx, multiplierConfig, nodeID, cs.Email, deltaUp, deltaDown, &nodeTrafficCounter{Up: canon.Up, Down: canon.Down})
+			if multiplierErr != nil {
+				return false, multiplierErr
+			}
 
 			if _, rowExists := existingEmails[cs.Email]; !rowExists {
 				if dirty {
@@ -679,7 +687,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 					enableExpr,
 					database.GreatestExpr("last_online", "?"),
 				),
-				deltaUp, deltaDown, cs.Enable, cs.Total,
+				billedUp, billedDown, cs.Enable, cs.Total,
 				cs.ExpiryTime, cs.ExpiryTime, cs.Reset,
 				cs.LastOnline, cs.Email,
 			).Error; err != nil {
@@ -842,6 +850,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			}
 			if err := tx.Where("email = ?", email).Delete(&model.NodeClientTraffic{}).Error; err != nil {
 				logger.Warningf("setRemoteTraffic: delete NodeClientTraffic %q failed: %v", email, err)
+			}
+			if err := deleteTrafficMultiplierStates(tx, email); err != nil {
+				logger.Warningf("setRemoteTraffic: delete traffic multiplier state %q failed: %v", email, err)
 			}
 			structuralChange = true
 		}

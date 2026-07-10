@@ -840,6 +840,9 @@ func (s *ClientService) BulkDelete(inboundSvc *InboundService, emails []string, 
 				}
 			}
 			if !keepTraffic && len(successEmails) > 0 {
+				if e := deleteTrafficMultiplierStates(tx, successEmails...); e != nil {
+					return e
+				}
 				for _, batch := range chunkStrings(successEmails, sqlInChunk) {
 					if e := tx.Where("email IN ?", batch).Delete(&xray.ClientTraffic{}).Error; e != nil {
 						return e

@@ -80,6 +80,7 @@ func initModels() error {
 		&model.NodeClientTraffic{},
 		&model.NodeClientIp{},
 		&model.ClientGlobalTraffic{},
+		&model.TrafficMultiplierState{},
 		&model.OutboundSubscription{},
 	}
 	for _, mdl := range models {
@@ -92,6 +93,7 @@ func initModels() error {
 			return err
 		}
 	}
+	log.Printf("Traffic multiplier migration verified successfully")
 	if err := migrateHostVerifyPeerCertByNameColumn(); err != nil {
 		return err
 	}

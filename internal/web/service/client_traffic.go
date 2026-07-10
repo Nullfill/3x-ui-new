@@ -104,6 +104,9 @@ func (s *ClientService) BulkResetTraffic(inboundSvc *InboundService, emails []st
 			if err := clearGlobalTraffic(tx, cleanEmails...); err != nil {
 				return err
 			}
+			if err := deleteTrafficMultiplierStates(tx, cleanEmails...); err != nil {
+				return err
+			}
 			for _, batch := range chunkStrings(cleanEmails, sqlInChunk) {
 				if err := tx.Where("email IN ?", batch).Delete(&model.NodeClientTraffic{}).Error; err != nil {
 					return err
@@ -161,6 +164,9 @@ func (s *ClientService) resetAllClientTrafficsLocked(id int) error {
 		if err := clearGlobalTraffic(tx, resetEmails...); err != nil {
 			return err
 		}
+		if err := deleteTrafficMultiplierStates(tx, resetEmails...); err != nil {
+			return err
+		}
 
 		for _, batch := range chunkStrings(resetEmails, sqlInChunk) {
 			if err := tx.Where("email IN ?", batch).Delete(&model.NodeClientTraffic{}).Error; err != nil {
@@ -195,6 +201,9 @@ func (s *ClientService) ResetAllTraffics() (bool, error) {
 		return false, res.Error
 	}
 	if err := db.Where("1 = 1").Delete(&model.ClientGlobalTraffic{}).Error; err != nil {
+		return false, err
+	}
+	if err := db.Where("1 = 1").Delete(&model.TrafficMultiplierState{}).Error; err != nil {
 		return false, err
 	}
 	return res.RowsAffected > 0, nil
