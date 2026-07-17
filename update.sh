@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-XUI_VERSION="${VERSION:-v3.4.2-multiplier-1}"
+XUI_VERSION="${VERSION:-v3.4.2-multiplier-2}"
 REPOSITORY="${XUI_REPOSITORY:-Nullfill/3x-ui-new}"
 INSTALL_DIR="/usr/local/x-ui"
 DATABASE_PATH="/etc/x-ui/x-ui.db"
