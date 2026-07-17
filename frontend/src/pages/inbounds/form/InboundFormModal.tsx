@@ -532,6 +532,21 @@ export default function InboundFormModal({
         <Switch />
       </Form.Item>
 
+      <Form.Item name="trafficMultiplierMode" label={t('pages.settings.trafficMultiplierEnabled')}>
+        <Select options={[
+          { value: 'inherit', label: t('pages.clients.multiplierInherit') },
+          { value: 'enabled', label: t('enabled') },
+          { value: 'disabled', label: t('disabled') },
+        ]} />
+      </Form.Item>
+      <Form.Item noStyle shouldUpdate={(p, c) => p.trafficMultiplierMode !== c.trafficMultiplierMode}>
+        {({ getFieldValue }) => (
+          <Form.Item name="trafficMultiplierFactor" label={t('pages.settings.trafficMultiplierFactor')}>
+            <InputNumber min={1} max={10} step={0.1} disabled={getFieldValue('trafficMultiplierMode') !== 'enabled'} />
+          </Form.Item>
+        )}
+      </Form.Item>
+
       <Form.Item name="remark" label={t('pages.inbounds.remark')}>
         <Input />
       </Form.Item>

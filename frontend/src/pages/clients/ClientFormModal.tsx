@@ -117,6 +117,8 @@ interface FormState {
   wgPublicKey: string;
   wgPreSharedKey: string;
   wgAllowedIPs: string;
+  trafficMultiplierMode: 'inherit' | 'enabled' | 'disabled';
+  trafficMultiplierFactor: number;
 }
 
 function emptyForm(): FormState {
@@ -145,6 +147,8 @@ function emptyForm(): FormState {
     wgPublicKey: '',
     wgPreSharedKey: '',
     wgAllowedIPs: '',
+    trafficMultiplierMode: 'inherit',
+    trafficMultiplierFactor: 1,
   };
 }
 
@@ -249,6 +253,8 @@ export default function ClientFormModal({
         wgPublicKey: client.publicKey || '',
         wgPreSharedKey: client.preSharedKey || '',
         wgAllowedIPs: client.allowedIPs || '',
+        trafficMultiplierMode: client.trafficMultiplierMode || 'inherit',
+        trafficMultiplierFactor: client.trafficMultiplierFactor || 1,
       };
       if (et < 0) {
         next.delayedStart = true;
@@ -455,6 +461,8 @@ export default function ClientFormModal({
       comment: form.comment,
       enable: form.enable,
       inboundIds: form.inboundIds,
+      trafficMultiplierMode: form.trafficMultiplierMode,
+      trafficMultiplierFactor: form.trafficMultiplierFactor,
     });
     if (!validated.success) {
       const issue = validated.error.issues[0];
@@ -480,6 +488,8 @@ export default function ClientFormModal({
       group: form.group,
       comment: form.comment,
       enable: !!form.enable,
+      trafficMultiplierMode: form.trafficMultiplierMode,
+      trafficMultiplierFactor: form.trafficMultiplierFactor,
     };
     const reverseTag = showReverseTag ? (form.reverseTag || '').trim() : '';
     if (reverseTag) {
@@ -571,6 +581,35 @@ export default function ClientFormModal({
                 label: t('pages.clients.tabBasics'),
                 children: (
                   <>
+                    <Row gutter={16}>
+                      <Col xs={24} md={12}>
+                        <Form.Item label={t('pages.settings.trafficMultiplierEnabled')}>
+                          <Select
+                            value={form.trafficMultiplierMode}
+                            onChange={(v) => update('trafficMultiplierMode', v)}
+                            options={[
+                              { value: 'inherit', label: t('pages.clients.multiplierInherit') },
+                              { value: 'enabled', label: t('enabled') },
+                              { value: 'disabled', label: t('disabled') },
+                            ]}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} md={12}>
+                        <Form.Item label={t('pages.settings.trafficMultiplierFactor')}>
+                          <InputNumber
+                            min={1}
+                            max={10}
+                            step={0.1}
+                            disabled={form.trafficMultiplierMode !== 'enabled'}
+                            value={form.trafficMultiplierFactor}
+                            style={{ width: '100%' }}
+                            onChange={(v) => update('trafficMultiplierFactor', Number(v) || 1)}
+                          />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
                     <Row gutter={16}>
                       <Col xs={24} md={12}>
                         <Form.Item label={t('pages.clients.email')} required>

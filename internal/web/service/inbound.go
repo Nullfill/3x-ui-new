@@ -25,6 +25,23 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+func normalizeTrafficMultiplierPolicy(inbound *model.Inbound) {
+	if inbound == nil || inbound.TrafficMultiplierMode == "" {
+		if inbound != nil {
+			inbound.TrafficMultiplierMode = "inherit"
+		}
+	}
+	if inbound == nil {
+		return
+	}
+	if inbound.TrafficMultiplierMode != "inherit" && inbound.TrafficMultiplierMode != "enabled" && inbound.TrafficMultiplierMode != "disabled" {
+		inbound.TrafficMultiplierMode = "inherit"
+	}
+	if inbound.TrafficMultiplierFactor < 1 || inbound.TrafficMultiplierFactor > 10 {
+		inbound.TrafficMultiplierFactor = 1
+	}
+}
+
 type InboundService struct {
 	xrayApi         xray.XrayAPI
 	clientService   ClientService
@@ -597,6 +614,7 @@ func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSet
 // then saves the inbound to the database and optionally adds it to the running Xray instance.
 // Returns the created inbound, whether Xray needs restart, and any error.
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
+	normalizeTrafficMultiplierPolicy(inbound)
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	s.normalizeMtprotoSecret(inbound)
@@ -1001,6 +1019,7 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 }
 
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
+	normalizeTrafficMultiplierPolicy(inbound)
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	s.normalizeMtprotoSecret(inbound)

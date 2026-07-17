@@ -14,6 +14,10 @@ export const ClientTrafficSchema = z.object({
   multiplierExtraDown: z.number().optional(),
   multiplierFactor: z.number().optional(),
   multiplierEnabled: z.boolean().optional(),
+  multiplierMode: z.enum(['inherit', 'enabled', 'disabled']).optional(),
+  multiplierSource: z.enum(['global', 'inbound', 'client', 'mixed']).optional(),
+  rawUp: z.number().optional(),
+  rawDown: z.number().optional(),
 });
 
 export const ClientRecordSchema = z.object({
@@ -43,6 +47,8 @@ export const ClientRecordSchema = z.object({
   keepAlive: z.number().optional(),
   createdAt: z.number().optional(),
   updatedAt: z.number().optional(),
+  trafficMultiplierMode: z.enum(['inherit', 'enabled', 'disabled']).optional(),
+  trafficMultiplierFactor: z.number().min(1).max(10).optional(),
 }).loose();
 
 export const InboundOptionSchema = z.object({
@@ -197,6 +203,8 @@ export const ClientFormSchema = z.object({
   comment: z.string(),
   enable: z.boolean(),
   inboundIds: z.array(z.number()),
+  trafficMultiplierMode: z.enum(['inherit', 'enabled', 'disabled']),
+  trafficMultiplierFactor: z.number().min(1).max(10),
 });
 
 export const ClientCreateFormSchema = ClientFormSchema.extend({

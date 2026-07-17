@@ -1447,6 +1447,13 @@ export default function ClientsPage() {
                                     enabled={row.enable}
                                     trafficDiff={trafficDiff}
                                   />
+                                  <div className="client-mobile-multiplier">
+                                    <span>{t('pages.clients.multiplierUsage')}</span>
+                                    <Tag color={row.traffic?.multiplierEnabled ? 'purple' : 'default'} style={{ margin: 0 }}>
+                                      {row.traffic?.multiplierEnabled ? `×${row.traffic?.multiplierFactor || 1}` : t('disabled')}
+                                    </Tag>
+                                    <span>+{SizeFormatter.sizeFormat((row.traffic?.multiplierExtraUp || 0) + (row.traffic?.multiplierExtraDown || 0))}</span>
+                                  </div>
                                 </div>
                               );
                             })}

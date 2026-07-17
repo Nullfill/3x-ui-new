@@ -128,21 +128,16 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 	if len(dbClientTraffics) == 0 {
 		return nil
 	}
-	multiplierConfig, err := loadTrafficMultiplierConfig(tx)
-	if err != nil {
-		return err
-	}
-
 	dbClientTraffics, err = s.adjustTraffics(tx, dbClientTraffics)
 	if err != nil {
 		return err
 	}
 
 	// Index by email for O(N) merge.
-	trafficByEmail := make(map[string]*xray.ClientTraffic, len(traffics))
+	trafficByEmail := make(map[string][]*xray.ClientTraffic, len(traffics))
 	for i := range traffics {
 		if traffics[i] != nil {
-			trafficByEmail[traffics[i].Email] = traffics[i]
+			trafficByEmail[traffics[i].Email] = append(trafficByEmail[traffics[i].Email], traffics[i])
 		}
 	}
 	now := time.Now().UnixMilli()
@@ -152,13 +147,29 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 	// deadlock. An atomic "SET up = up + ?" never holds a row lock across a
 	// subsequent lock acquisition, so concurrent writers cannot deadlock.
 	for _, ct := range dbClientTraffics {
-		t, ok := trafficByEmail[ct.Email]
-		if !ok || (t.Up == 0 && t.Down == 0) {
+		samples, ok := trafficByEmail[ct.Email]
+		if !ok {
 			continue
 		}
-		billedUp, billedDown, multiplierErr := applyTrafficMultiplier(tx, multiplierConfig, 0, ct.Email, t.Up, t.Down, nil)
-		if multiplierErr != nil {
-			return multiplierErr
+		var billedUp, billedDown int64
+		for _, t := range samples {
+			if t.Up == 0 && t.Down == 0 {
+				continue
+			}
+			inboundID := t.InboundId
+			if inboundID == 0 {
+				inboundID = ct.InboundId
+			}
+			multiplierConfig, configErr := effectiveTrafficMultiplier(tx, inboundID, ct.Email)
+			if configErr != nil {
+				return configErr
+			}
+			up, down, multiplierErr := applyTrafficMultiplier(tx, multiplierConfig, 0, inboundID, ct.Email, t.Up, t.Down, nil)
+			if multiplierErr != nil {
+				return multiplierErr
+			}
+			billedUp += up
+			billedDown += down
 		}
 		if err = tx.Exec(
 			fmt.Sprintf(

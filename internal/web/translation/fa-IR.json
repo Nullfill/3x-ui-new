@@ -807,6 +807,7 @@
       "multiplierUsage": "مصرف افزوده با ضریب",
       "multiplierExtraUp": "آپلود اضافه‌شده با ضریب",
       "multiplierExtraDown": "دانلود اضافه‌شده با ضریب",
+      "multiplierInherit": "ارث‌بری از اینباند/تنظیم سراسری",
       "offline": "آفلاین",
       "addClient": "افزودن کلاینت",
       "qrCode": "کد QR",

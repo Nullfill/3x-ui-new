@@ -379,11 +379,6 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 	}()
 
 	structuralChange := false
-	multiplierConfig, err := loadTrafficMultiplierConfig(tx)
-	if err != nil {
-		return false, err
-	}
-
 	newInboundIDs := make(map[int]struct{})
 
 	snapTags := make(map[string]struct{}, len(snap.Inbounds))
@@ -622,7 +617,11 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 					deltaDown = 0
 				}
 			}
-			billedUp, billedDown, multiplierErr := applyTrafficMultiplier(tx, multiplierConfig, nodeID, cs.Email, deltaUp, deltaDown, &nodeTrafficCounter{Up: canon.Up, Down: canon.Down})
+			config, configErr := effectiveTrafficMultiplier(tx, c.Id, cs.Email)
+			if configErr != nil {
+				return false, configErr
+			}
+			billedUp, billedDown, multiplierErr := applyTrafficMultiplier(tx, config, nodeID, c.Id, cs.Email, deltaUp, deltaDown, &nodeTrafficCounter{Up: canon.Up, Down: canon.Down})
 			if multiplierErr != nil {
 				return false, multiplierErr
 			}

@@ -19,6 +19,77 @@ type trafficMultiplierConfig struct {
 	Factor  float64
 }
 
+// effectiveTrafficMultiplier resolves the three-level policy. Explicit client
+// and inbound disables are important: they must override an enabled global
+// setting rather than merely inherit it.
+func effectiveTrafficMultiplier(tx *gorm.DB, inboundID int, email string) (trafficMultiplierConfig, error) {
+	global, err := loadTrafficMultiplierConfig(tx)
+	if err != nil {
+		return global, err
+	}
+	var client model.ClientRecord
+	if email != "" && tx.Select("traffic_multiplier_mode, traffic_multiplier_factor").Where("email = ?", email).First(&client).Error == nil {
+		if mode := client.TrafficMultiplierMode; mode == "disabled" {
+			return trafficMultiplierConfig{Factor: 1}, nil
+		} else if mode == "enabled" {
+			return trafficMultiplierConfig{Enabled: true, Factor: validMultiplierFactor(client.TrafficMultiplierFactor)}, nil
+		}
+	}
+	var ib model.Inbound
+	if inboundID > 0 && tx.Select("traffic_multiplier_mode, traffic_multiplier_factor").First(&ib, inboundID).Error == nil {
+		if mode := ib.TrafficMultiplierMode; mode == "disabled" {
+			return trafficMultiplierConfig{Factor: 1}, nil
+		} else if mode == "enabled" {
+			return trafficMultiplierConfig{Enabled: true, Factor: validMultiplierFactor(ib.TrafficMultiplierFactor)}, nil
+		}
+	}
+	return global, nil
+}
+
+func validMultiplierFactor(f float64) float64 {
+	if f < 1 || f > 10 || math.IsNaN(f) || math.IsInf(f, 0) {
+		return 1
+	}
+	return f
+}
+
+func multiplierDisplayPolicy(tx *gorm.DB, email string, global trafficMultiplierConfig) (trafficMultiplierConfig, string) {
+	var client model.ClientRecord
+	if tx.Select("traffic_multiplier_mode, traffic_multiplier_factor").Where("email = ?", email).First(&client).Error == nil {
+		if client.TrafficMultiplierMode == "disabled" {
+			return trafficMultiplierConfig{Factor: 1}, "client"
+		}
+		if client.TrafficMultiplierMode == "enabled" {
+			return trafficMultiplierConfig{Enabled: true, Factor: validMultiplierFactor(client.TrafficMultiplierFactor)}, "client"
+		}
+	}
+	var policies []struct {
+		Mode   string  `gorm:"column:mode"`
+		Factor float64 `gorm:"column:factor"`
+	}
+	err := tx.Table("client_inbounds ci").Select("i.traffic_multiplier_mode AS mode, i.traffic_multiplier_factor AS factor").
+		Joins("JOIN clients c ON c.id = ci.client_id JOIN inbounds i ON i.id = ci.inbound_id").
+		Where("c.email = ? AND i.traffic_multiplier_mode <> '' AND i.traffic_multiplier_mode <> 'inherit'", email).Scan(&policies).Error
+	if err == nil && len(policies) > 0 {
+		first := policies[0]
+		allSame := true
+		for _, p := range policies[1:] {
+			if p.Mode != first.Mode || validMultiplierFactor(p.Factor) != validMultiplierFactor(first.Factor) {
+				allSame = false
+				break
+			}
+		}
+		if allSame {
+			if first.Mode == "enabled" {
+				return trafficMultiplierConfig{Enabled: true, Factor: validMultiplierFactor(first.Factor)}, "inbound"
+			}
+			return trafficMultiplierConfig{Factor: 1}, "inbound"
+		}
+		return trafficMultiplierConfig{Enabled: true, Factor: global.Factor}, "mixed"
+	}
+	return global, "global"
+}
+
 func loadTrafficMultiplierConfig(tx *gorm.DB) (trafficMultiplierConfig, error) {
 	config := trafficMultiplierConfig{Factor: 1}
 	var rows []model.Setting
@@ -61,7 +132,7 @@ func multipliedTrafficDelta(up, down int64, config trafficMultiplierConfig) (int
 // billed delta and advances its independent persistent state. currentRaw is nil
 // for the local Xray delta stream and the cumulative node counter for a remote
 // source.
-func applyTrafficMultiplier(tx *gorm.DB, config trafficMultiplierConfig, sourceNodeID int, email string, rawUp, rawDown int64, currentRaw *nodeTrafficCounter) (int64, int64, error) {
+func applyTrafficMultiplier(tx *gorm.DB, config trafficMultiplierConfig, sourceNodeID, inboundID int, email string, rawUp, rawDown int64, currentRaw *nodeTrafficCounter) (int64, int64, error) {
 	if rawUp < 0 || rawDown < 0 {
 		logger.Warningf("Traffic multiplier skipped suspicious negative delta for %q source %d", email, sourceNodeID)
 		return 0, 0, nil
@@ -69,13 +140,14 @@ func applyTrafficMultiplier(tx *gorm.DB, config trafficMultiplierConfig, sourceN
 
 	var state model.TrafficMultiplierState
 	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("source_node_id = ? AND client_email = ?", sourceNodeID, email).First(&state).Error
+		Where("source_node_id = ? AND inbound_id = ? AND client_email = ?", sourceNodeID, inboundID, email).First(&state).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return 0, 0, err
 	}
 	newState := errors.Is(err, gorm.ErrRecordNotFound)
 	if newState {
 		state.SourceNodeId = sourceNodeID
+		state.InboundId = inboundID
 		state.ClientEmail = email
 		state.Factor = config.Factor
 		state.Enabled = config.Enabled
@@ -147,6 +219,16 @@ func attachTrafficMultiplierUsage(tx *gorm.DB, traffics []xray.ClientTraffic) er
 		traffics[i].MultiplierExtraDown = extra.down
 		traffics[i].MultiplierFactor = config.Factor
 		traffics[i].MultiplierEnabled = config.Enabled
+		traffics[i].RawUp = max(traffics[i].Up-extra.up, 0)
+		traffics[i].RawDown = max(traffics[i].Down-extra.down, 0)
+		displayConfig, source := multiplierDisplayPolicy(tx, traffics[i].Email, config)
+		traffics[i].MultiplierMode = "inherit"
+		traffics[i].MultiplierSource = source
+		traffics[i].MultiplierEnabled = displayConfig.Enabled
+		traffics[i].MultiplierFactor = displayConfig.Factor
+		if source == "client" || source == "inbound" {
+			traffics[i].MultiplierMode = map[bool]string{true: "enabled", false: "disabled"}[displayConfig.Enabled]
+		}
 	}
 	return nil
 }

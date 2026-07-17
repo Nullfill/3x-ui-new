@@ -44,18 +44,20 @@ type User struct {
 
 // Inbound represents an Xray inbound configuration with traffic statistics and settings.
 type Inbound struct {
-	Id                   int                  `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`                                                                                                     // Unique identifier
-	UserId               int                  `json:"-"`                                                                                                                                                            // Associated user ID
-	Up                   int64                `json:"up" form:"up"`                                                                                                                                                 // Upload traffic in bytes
-	Down                 int64                `json:"down" form:"down"`                                                                                                                                             // Download traffic in bytes
-	Total                int64                `json:"total" form:"total"`                                                                                                                                           // Total traffic limit in bytes
-	Remark               string               `json:"remark" form:"remark" example:"VLESS-443"`                                                                                                                     // Human-readable remark
-	SubSortIndex         int                  `json:"subSortIndex" form:"subSortIndex" gorm:"default:1" validate:"omitempty,gte=1" example:"1"`                                                                     // 1-based sort order of this inbound's links in subscription output only (lower first; ties by id)
-	Enable               bool                 `json:"enable" form:"enable" gorm:"index:idx_enable_traffic_reset,priority:1" example:"true"`                                                                         // Whether the inbound is enabled
-	ExpiryTime           int64                `json:"expiryTime" form:"expiryTime"`                                                                                                                                 // Expiration timestamp
-	TrafficReset         string               `json:"trafficReset" form:"trafficReset" gorm:"default:never;index:idx_enable_traffic_reset,priority:2" validate:"omitempty,oneof=never hourly daily weekly monthly"` // Traffic reset schedule
-	LastTrafficResetTime int64                `json:"lastTrafficResetTime" form:"lastTrafficResetTime" gorm:"default:0"`                                                                                            // Last traffic reset timestamp
-	ClientStats          []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id" json:"clientStats" form:"clientStats"`                                                                                     // Client traffic statistics
+	Id                      int                  `json:"id" form:"id" gorm:"primaryKey;autoIncrement" example:"1"`                                                                                                     // Unique identifier
+	UserId                  int                  `json:"-"`                                                                                                                                                            // Associated user ID
+	Up                      int64                `json:"up" form:"up"`                                                                                                                                                 // Upload traffic in bytes
+	Down                    int64                `json:"down" form:"down"`                                                                                                                                             // Download traffic in bytes
+	Total                   int64                `json:"total" form:"total"`                                                                                                                                           // Total traffic limit in bytes
+	Remark                  string               `json:"remark" form:"remark" example:"VLESS-443"`                                                                                                                     // Human-readable remark
+	SubSortIndex            int                  `json:"subSortIndex" form:"subSortIndex" gorm:"default:1" validate:"omitempty,gte=1" example:"1"`                                                                     // 1-based sort order of this inbound's links in subscription output only (lower first; ties by id)
+	Enable                  bool                 `json:"enable" form:"enable" gorm:"index:idx_enable_traffic_reset,priority:1" example:"true"`                                                                         // Whether the inbound is enabled
+	ExpiryTime              int64                `json:"expiryTime" form:"expiryTime"`                                                                                                                                 // Expiration timestamp
+	TrafficReset            string               `json:"trafficReset" form:"trafficReset" gorm:"default:never;index:idx_enable_traffic_reset,priority:2" validate:"omitempty,oneof=never hourly daily weekly monthly"` // Traffic reset schedule
+	LastTrafficResetTime    int64                `json:"lastTrafficResetTime" form:"lastTrafficResetTime" gorm:"default:0"`                                                                                            // Last traffic reset timestamp
+	ClientStats             []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id" json:"clientStats" form:"clientStats"`                                                                                     // Client traffic statistics
+	TrafficMultiplierMode   string               `json:"trafficMultiplierMode" form:"trafficMultiplierMode" gorm:"default:inherit" validate:"omitempty,oneof=inherit enabled disabled"`
+	TrafficMultiplierFactor float64              `json:"trafficMultiplierFactor" form:"trafficMultiplierFactor" gorm:"default:1" validate:"omitempty,gte=1,lte=10"`
 
 	// Xray configuration fields
 	Listen            string   `json:"listen" form:"listen"`
@@ -592,56 +594,60 @@ type ClientReverse struct {
 
 // Client represents a client configuration for Xray inbounds with traffic limits and settings.
 type Client struct {
-	ID           string         `json:"id,omitempty"`       // Unique client identifier
-	Security     string         `json:"security"`           // Security method (e.g., "auto", "aes-128-gcm")
-	Password     string         `json:"password,omitempty"` // Client password
-	Flow         string         `json:"flow,omitempty"`     // Flow control (XTLS)
-	Reverse      *ClientReverse `json:"reverse,omitempty"`  // VLESS simple reverse proxy settings
-	Auth         string         `json:"auth,omitempty"`     // Auth password (Hysteria)
-	PrivateKey   string         `json:"privateKey,omitempty"`
-	PublicKey    string         `json:"publicKey,omitempty"`
-	AllowedIPs   []string       `json:"allowedIPs,omitempty"`
-	PreSharedKey string         `json:"preSharedKey,omitempty"`
-	KeepAlive    int            `json:"keepAlive,omitempty"`
-	Email        string         `json:"email"`                        // Client email identifier
-	LimitIP      int            `json:"limitIp"`                      // IP limit for this client
-	TotalGB      int64          `json:"totalGB" form:"totalGB"`       // Total traffic limit in GB
-	ExpiryTime   int64          `json:"expiryTime" form:"expiryTime"` // Expiration timestamp
-	Enable       bool           `json:"enable" form:"enable"`         // Whether the client is enabled
-	TgID         int64          `json:"tgId" form:"tgId"`             // Telegram user ID for notifications
-	SubID        string         `json:"subId" form:"subId"`           // Subscription identifier
-	Group        string         `json:"group,omitempty" form:"group"` // Logical grouping label
-	Comment      string         `json:"comment" form:"comment"`       // Client comment
-	Reset        int            `json:"reset" form:"reset"`           // Reset period in days
-	CreatedAt    int64          `json:"created_at,omitempty"`         // Creation timestamp
-	UpdatedAt    int64          `json:"updated_at,omitempty"`         // Last update timestamp
+	ID                      string         `json:"id,omitempty"`       // Unique client identifier
+	Security                string         `json:"security"`           // Security method (e.g., "auto", "aes-128-gcm")
+	Password                string         `json:"password,omitempty"` // Client password
+	Flow                    string         `json:"flow,omitempty"`     // Flow control (XTLS)
+	Reverse                 *ClientReverse `json:"reverse,omitempty"`  // VLESS simple reverse proxy settings
+	Auth                    string         `json:"auth,omitempty"`     // Auth password (Hysteria)
+	PrivateKey              string         `json:"privateKey,omitempty"`
+	PublicKey               string         `json:"publicKey,omitempty"`
+	AllowedIPs              []string       `json:"allowedIPs,omitempty"`
+	PreSharedKey            string         `json:"preSharedKey,omitempty"`
+	KeepAlive               int            `json:"keepAlive,omitempty"`
+	Email                   string         `json:"email"`                        // Client email identifier
+	LimitIP                 int            `json:"limitIp"`                      // IP limit for this client
+	TotalGB                 int64          `json:"totalGB" form:"totalGB"`       // Total traffic limit in GB
+	ExpiryTime              int64          `json:"expiryTime" form:"expiryTime"` // Expiration timestamp
+	Enable                  bool           `json:"enable" form:"enable"`         // Whether the client is enabled
+	TgID                    int64          `json:"tgId" form:"tgId"`             // Telegram user ID for notifications
+	SubID                   string         `json:"subId" form:"subId"`           // Subscription identifier
+	Group                   string         `json:"group,omitempty" form:"group"` // Logical grouping label
+	Comment                 string         `json:"comment" form:"comment"`       // Client comment
+	Reset                   int            `json:"reset" form:"reset"`           // Reset period in days
+	CreatedAt               int64          `json:"created_at,omitempty"`         // Creation timestamp
+	UpdatedAt               int64          `json:"updated_at,omitempty"`         // Last update timestamp
+	TrafficMultiplierMode   string         `json:"trafficMultiplierMode,omitempty" form:"trafficMultiplierMode"`
+	TrafficMultiplierFactor float64        `json:"trafficMultiplierFactor,omitempty" form:"trafficMultiplierFactor"`
 }
 
 type ClientRecord struct {
-	Id           int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	Email        string `json:"email" gorm:"uniqueIndex;not null"`
-	SubID        string `json:"subId" gorm:"index;column:sub_id"`
-	UUID         string `json:"uuid" gorm:"column:uuid"`
-	Password     string `json:"password"`
-	Auth         string `json:"auth"`
-	Flow         string `json:"flow"`
-	Security     string `json:"security"`
-	Reverse      string `json:"reverse" gorm:"column:reverse"`
-	PrivateKey   string `json:"privateKey" gorm:"column:wg_private_key"`
-	PublicKey    string `json:"publicKey" gorm:"column:wg_public_key"`
-	AllowedIPs   string `json:"allowedIPs" gorm:"column:wg_allowed_ips"`
-	PreSharedKey string `json:"preSharedKey" gorm:"column:wg_pre_shared_key"`
-	KeepAlive    int    `json:"keepAlive" gorm:"column:wg_keep_alive;default:0"`
-	LimitIP      int    `json:"limitIp" gorm:"column:limit_ip"`
-	TotalGB      int64  `json:"totalGB" gorm:"column:total_gb"`
-	ExpiryTime   int64  `json:"expiryTime" gorm:"column:expiry_time"`
-	Enable       bool   `json:"enable" gorm:"default:true"`
-	TgID         int64  `json:"tgId" gorm:"column:tg_id"`
-	Group        string `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group"`
-	Comment      string `json:"comment"`
-	Reset        int    `json:"reset" gorm:"default:0"`
-	CreatedAt    int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
-	UpdatedAt    int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+	Id                      int     `json:"id" gorm:"primaryKey;autoIncrement"`
+	Email                   string  `json:"email" gorm:"uniqueIndex;not null"`
+	SubID                   string  `json:"subId" gorm:"index;column:sub_id"`
+	UUID                    string  `json:"uuid" gorm:"column:uuid"`
+	Password                string  `json:"password"`
+	Auth                    string  `json:"auth"`
+	Flow                    string  `json:"flow"`
+	Security                string  `json:"security"`
+	Reverse                 string  `json:"reverse" gorm:"column:reverse"`
+	PrivateKey              string  `json:"privateKey" gorm:"column:wg_private_key"`
+	PublicKey               string  `json:"publicKey" gorm:"column:wg_public_key"`
+	AllowedIPs              string  `json:"allowedIPs" gorm:"column:wg_allowed_ips"`
+	PreSharedKey            string  `json:"preSharedKey" gorm:"column:wg_pre_shared_key"`
+	KeepAlive               int     `json:"keepAlive" gorm:"column:wg_keep_alive;default:0"`
+	LimitIP                 int     `json:"limitIp" gorm:"column:limit_ip"`
+	TotalGB                 int64   `json:"totalGB" gorm:"column:total_gb"`
+	ExpiryTime              int64   `json:"expiryTime" gorm:"column:expiry_time"`
+	Enable                  bool    `json:"enable" gorm:"default:true"`
+	TgID                    int64   `json:"tgId" gorm:"column:tg_id"`
+	Group                   string  `json:"group" gorm:"column:group_name;default:'';index:idx_client_record_group"`
+	Comment                 string  `json:"comment"`
+	Reset                   int     `json:"reset" gorm:"default:0"`
+	CreatedAt               int64   `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt               int64   `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+	TrafficMultiplierMode   string  `json:"trafficMultiplierMode" gorm:"column:traffic_multiplier_mode;default:inherit"`
+	TrafficMultiplierFactor float64 `json:"trafficMultiplierFactor" gorm:"column:traffic_multiplier_factor;default:1"`
 }
 
 func (ClientRecord) TableName() string { return "clients" }
@@ -792,23 +798,25 @@ func (Host) TableName() string { return "hosts" }
 
 func (c *Client) ToRecord() *ClientRecord {
 	rec := &ClientRecord{
-		Email:      c.Email,
-		SubID:      c.SubID,
-		UUID:       c.ID,
-		Password:   c.Password,
-		Auth:       c.Auth,
-		Flow:       c.Flow,
-		Security:   c.Security,
-		LimitIP:    c.LimitIP,
-		TotalGB:    c.TotalGB,
-		ExpiryTime: c.ExpiryTime,
-		Enable:     c.Enable,
-		TgID:       c.TgID,
-		Group:      c.Group,
-		Comment:    c.Comment,
-		Reset:      c.Reset,
-		CreatedAt:  c.CreatedAt,
-		UpdatedAt:  c.UpdatedAt,
+		Email:                   c.Email,
+		SubID:                   c.SubID,
+		UUID:                    c.ID,
+		Password:                c.Password,
+		Auth:                    c.Auth,
+		Flow:                    c.Flow,
+		Security:                c.Security,
+		LimitIP:                 c.LimitIP,
+		TotalGB:                 c.TotalGB,
+		ExpiryTime:              c.ExpiryTime,
+		Enable:                  c.Enable,
+		TgID:                    c.TgID,
+		Group:                   c.Group,
+		Comment:                 c.Comment,
+		Reset:                   c.Reset,
+		CreatedAt:               c.CreatedAt,
+		UpdatedAt:               c.UpdatedAt,
+		TrafficMultiplierMode:   c.TrafficMultiplierMode,
+		TrafficMultiplierFactor: c.TrafficMultiplierFactor,
 
 		PrivateKey:   c.PrivateKey,
 		PublicKey:    c.PublicKey,
@@ -843,23 +851,25 @@ func splitWireguardAllowedIPs(csv string) []string {
 
 func (r *ClientRecord) ToClient() *Client {
 	c := &Client{
-		ID:         r.UUID,
-		Email:      r.Email,
-		SubID:      r.SubID,
-		Password:   r.Password,
-		Auth:       r.Auth,
-		Flow:       r.Flow,
-		Security:   r.Security,
-		LimitIP:    r.LimitIP,
-		TotalGB:    r.TotalGB,
-		ExpiryTime: r.ExpiryTime,
-		Enable:     r.Enable,
-		TgID:       r.TgID,
-		Group:      r.Group,
-		Comment:    r.Comment,
-		Reset:      r.Reset,
-		CreatedAt:  r.CreatedAt,
-		UpdatedAt:  r.UpdatedAt,
+		ID:                      r.UUID,
+		Email:                   r.Email,
+		SubID:                   r.SubID,
+		Password:                r.Password,
+		Auth:                    r.Auth,
+		Flow:                    r.Flow,
+		Security:                r.Security,
+		LimitIP:                 r.LimitIP,
+		TotalGB:                 r.TotalGB,
+		ExpiryTime:              r.ExpiryTime,
+		Enable:                  r.Enable,
+		TgID:                    r.TgID,
+		Group:                   r.Group,
+		Comment:                 r.Comment,
+		Reset:                   r.Reset,
+		CreatedAt:               r.CreatedAt,
+		UpdatedAt:               r.UpdatedAt,
+		TrafficMultiplierMode:   r.TrafficMultiplierMode,
+		TrafficMultiplierFactor: r.TrafficMultiplierFactor,
 
 		PrivateKey:   r.PrivateKey,
 		PublicKey:    r.PublicKey,
@@ -969,6 +979,17 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 		if picked != existing.ExpiryTime {
 			keep("expiryTime", existing.ExpiryTime, incoming.ExpiryTime, picked)
 			existing.ExpiryTime = picked
+		}
+	}
+	if existing.TrafficMultiplierMode != incoming.TrafficMultiplierMode && incoming.TrafficMultiplierMode != "" {
+		if incomingNewer || existing.TrafficMultiplierMode == "" || existing.TrafficMultiplierMode == "inherit" {
+			keep("trafficMultiplierMode", existing.TrafficMultiplierMode, incoming.TrafficMultiplierMode, incoming.TrafficMultiplierMode)
+			existing.TrafficMultiplierMode = incoming.TrafficMultiplierMode
+		}
+	}
+	if incoming.TrafficMultiplierFactor >= 1 && incoming.TrafficMultiplierFactor <= 10 && incoming.TrafficMultiplierFactor != existing.TrafficMultiplierFactor {
+		if incomingNewer || existing.TrafficMultiplierFactor == 0 || existing.TrafficMultiplierMode == "inherit" {
+			existing.TrafficMultiplierFactor = incoming.TrafficMultiplierFactor
 		}
 	}
 	if existing.LimitIP != incoming.LimitIP && incoming.LimitIP != 0 {

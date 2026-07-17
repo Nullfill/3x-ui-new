@@ -33,6 +33,8 @@ export interface DBInboundRecord extends ProtocolFlags {
   nodeId?: number | null;
   settings: unknown;
   streamSettings: unknown;
+  trafficMultiplierMode?: 'inherit' | 'enabled' | 'disabled';
+  trafficMultiplierFactor?: number;
 }
 
 export interface ClientCountEntry {

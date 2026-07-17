@@ -93,6 +93,14 @@ func initModels() error {
 			return err
 		}
 	}
+	// The multiplier state used to be unique only by source+email. Drop that
+	// legacy constraint after creating the new source+inbound+email index so a
+	// client attached to multiple inbounds can keep independent policy state.
+	if db.Migrator().HasIndex(&model.TrafficMultiplierState{}, "idx_multiplier_source_email") {
+		if err := db.Migrator().DropIndex(&model.TrafficMultiplierState{}, "idx_multiplier_source_email"); err != nil {
+			return err
+		}
+	}
 	log.Printf("Traffic multiplier migration verified successfully")
 	if err := migrateHostVerifyPeerCertByNameColumn(); err != nil {
 		return err

@@ -807,6 +807,7 @@
       "multiplierUsage": "Multiplier Added",
       "multiplierExtraUp": "Extra upload billed by multiplier",
       "multiplierExtraDown": "Extra download billed by multiplier",
+      "multiplierInherit": "Inherit from inbound/global",
       "offline": "Offline",
       "addClient": "Add Client",
       "qrCode": "QR Code",

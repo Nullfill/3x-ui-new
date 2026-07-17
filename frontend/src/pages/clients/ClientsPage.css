@@ -211,3 +211,12 @@
   text-align: center;
   color: var(--ant-color-text-secondary);
 }
+.client-mobile-multiplier {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12px;
+  opacity: 0.85;
+  flex-wrap: wrap;
+}

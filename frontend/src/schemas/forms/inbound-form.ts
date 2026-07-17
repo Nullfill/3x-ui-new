@@ -27,6 +27,8 @@ export const InboundDbFieldsSchema = z.object({
   shareAddrStrategy: ShareAddrStrategySchema.default('node'),
   shareAddr: z.string().default(''),
   subSortIndex: z.number().int().min(1).default(1),
+  trafficMultiplierMode: z.enum(['inherit', 'enabled', 'disabled']).default('inherit'),
+  trafficMultiplierFactor: z.number().min(1).max(10).default(1),
 });
 export type InboundDbFields = z.infer<typeof InboundDbFieldsSchema>;
 

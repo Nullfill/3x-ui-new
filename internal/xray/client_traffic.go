@@ -19,4 +19,8 @@ type ClientTraffic struct {
 	MultiplierExtraDown int64   `json:"multiplierExtraDown" gorm:"-"`
 	MultiplierFactor    float64 `json:"multiplierFactor" gorm:"-"`
 	MultiplierEnabled   bool    `json:"multiplierEnabled" gorm:"-"`
+	RawUp               int64   `json:"rawUp" gorm:"-"`
+	RawDown             int64   `json:"rawDown" gorm:"-"`
+	MultiplierMode      string  `json:"multiplierMode" gorm:"-"`
+	MultiplierSource    string  `json:"multiplierSource" gorm:"-"`
 }

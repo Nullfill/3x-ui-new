@@ -63,6 +63,15 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	if client.SubID == "" {
 		client.SubID = uuid.NewString()
 	}
+	if client.TrafficMultiplierMode == "" {
+		client.TrafficMultiplierMode = "inherit"
+	}
+	if client.TrafficMultiplierMode != "inherit" && client.TrafficMultiplierMode != "enabled" && client.TrafficMultiplierMode != "disabled" {
+		return false, common.NewError("invalid traffic multiplier mode")
+	}
+	if client.TrafficMultiplierFactor < 1 || client.TrafficMultiplierFactor > 10 {
+		client.TrafficMultiplierFactor = 1
+	}
 	if !client.Enable {
 		client.Enable = true
 	}
@@ -412,6 +421,21 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 	if err := database.GetDB().Model(&model.ClientRecord{}).
 		Where("id = ?", id).
 		UpdateColumn("enable", updated.Enable).Error; err != nil {
+		return needRestart, err
+	}
+	if updated.TrafficMultiplierMode == "" {
+		updated.TrafficMultiplierMode = "inherit"
+	}
+	if updated.TrafficMultiplierMode != "inherit" && updated.TrafficMultiplierMode != "enabled" && updated.TrafficMultiplierMode != "disabled" {
+		return needRestart, common.NewError("invalid traffic multiplier mode")
+	}
+	if updated.TrafficMultiplierFactor < 1 || updated.TrafficMultiplierFactor > 10 {
+		updated.TrafficMultiplierFactor = 1
+	}
+	if err := database.GetDB().Model(&model.ClientRecord{}).Where("id = ?", id).Updates(map[string]any{
+		"traffic_multiplier_mode":   updated.TrafficMultiplierMode,
+		"traffic_multiplier_factor": updated.TrafficMultiplierFactor,
+	}).Error; err != nil {
 		return needRestart, err
 	}
 

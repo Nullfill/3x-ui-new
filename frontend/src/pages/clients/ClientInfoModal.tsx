@@ -270,6 +270,19 @@ export default function ClientInfoModal({
                   </td>
                 </tr>
                 <tr>
+                  <td>{t('pages.clients.multiplierUsage')}</td>
+                  <td>
+                    <Tag color={traffic?.multiplierEnabled ? 'blue' : 'default'}>
+                      {traffic?.multiplierEnabled ? `×${traffic.multiplierFactor || 1}` : t('disabled')}
+                    </Tag>
+                    <span className="hint">
+                      Raw: {SizeFormatter.sizeFormat((traffic?.rawUp || 0) + (traffic?.rawDown || 0))}
+                      {' · '}Billed: {SizeFormatter.sizeFormat(used)}
+                      {' · '}+{SizeFormatter.sizeFormat((traffic?.multiplierExtraUp || 0) + (traffic?.multiplierExtraDown || 0))}
+                    </span>
+                  </td>
+                </tr>
+                <tr>
                   <td>{t('remained')}</td>
                   <td>
                     {remaining < 0
