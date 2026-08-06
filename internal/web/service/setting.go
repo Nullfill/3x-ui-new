@@ -66,6 +66,8 @@ var defaultValueMap = map[string]string{
 	"pageSize":                    "25",
 	"expireDiff":                  "0",
 	"trafficDiff":                 "0",
+	"trafficMultiplierEnabled":    "false",
+	"trafficMultiplierFactor":     "1",
 	"remarkTemplate":              DefaultRemarkTemplate,
 	"subShowIdentityOnAllLinks":   "false",
 	"timeLocation":                "Local",
@@ -228,6 +230,12 @@ func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
 				return err
 			}
 			fieldV.SetInt(n)
+		case float64:
+			n, err := strconv.ParseFloat(effectiveSettingValue(key, value), 64)
+			if err != nil {
+				return err
+			}
+			fieldV.SetFloat(n)
 		case string:
 			fieldV.SetString(value)
 		case bool:
@@ -1166,6 +1174,9 @@ type SecretClears struct {
 }
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears SecretClears) error {
+	if allSetting.TrafficMultiplierFactor == 0 {
+		allSetting.TrafficMultiplierFactor = 1
+	}
 	if err := s.preserveRedactedSecrets(allSetting, clears); err != nil {
 		return err
 	}
@@ -1184,7 +1195,14 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 	fields := reflect_util.GetFields(t)
 
 	db := database.GetDB()
-	return db.Transaction(func(tx *gorm.DB) error {
+	var oldEnabled bool
+	var oldFactor float64
+	if current, err := s.GetAllSetting(); err == nil {
+		oldEnabled = current.TrafficMultiplierEnabled
+		oldFactor = current.TrafficMultiplierFactor
+	}
+	multiplierChanged := oldEnabled != allSetting.TrafficMultiplierEnabled || oldFactor != allSetting.TrafficMultiplierFactor
+	err := db.Transaction(func(tx *gorm.DB) error {
 		var existing []*model.Setting
 		if err := tx.Find(&existing).Error; err != nil {
 			return err
@@ -1211,8 +1229,25 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting, clears 
 				return err
 			}
 		}
+		if multiplierChanged {
+			return refreshTrafficMultiplierConfiguration(tx, allSetting.TrafficMultiplierEnabled, allSetting.TrafficMultiplierFactor)
+		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	if multiplierChanged {
+		switch {
+		case !oldEnabled && allSetting.TrafficMultiplierEnabled:
+			logger.Infof("Traffic usage multiplier enabled (factor %.4g)", allSetting.TrafficMultiplierFactor)
+		case oldEnabled && !allSetting.TrafficMultiplierEnabled:
+			logger.Info("Traffic usage multiplier disabled")
+		default:
+			logger.Infof("Traffic usage multiplier factor changed from %.4g to %.4g", oldFactor, allSetting.TrafficMultiplierFactor)
+		}
+	}
+	return nil
 }
 
 func validateSubUserAgentRegexes(allSetting *entity.AllSetting) error {

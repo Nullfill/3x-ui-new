@@ -82,6 +82,7 @@ func allModels() []any {
 		&model.NodeClientTraffic{},
 		&model.NodeClientIp{},
 		&model.ClientGlobalTraffic{},
+		&model.TrafficMultiplierState{},
 		&model.OutboundSubscription{},
 	}
 }

@@ -757,6 +757,14 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 					deltaDown = 0
 				}
 			}
+			config, configErr := effectiveTrafficMultiplier(tx, c.Id, cs.Email)
+			if configErr != nil {
+				return false, configErr
+			}
+			billedUp, billedDown, multiplierErr := applyTrafficMultiplier(tx, config, nodeID, c.Id, cs.Email, deltaUp, deltaDown, &nodeTrafficCounter{Up: canon.Up, Down: canon.Down})
+			if multiplierErr != nil {
+				return false, multiplierErr
+			}
 
 			if _, rowExists := existingEmails[cs.Email]; !rowExists {
 				if dirty {
@@ -851,7 +859,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 						enableExpr,
 						database.GreatestExpr("last_online", "?"),
 					),
-					deltaUp, deltaDown, cs.Enable, cs.Total,
+					billedUp, billedDown, cs.Enable, cs.Total,
 					cs.ExpiryTime, cs.ExpiryTime, cs.Reset,
 					cs.LastOnline, cs.Email,
 				).Error; err != nil {
@@ -896,6 +904,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			if !stillUsed && !clientRecordExists(tx, existing.Email) {
 				if err := tx.Where("inbound_id = ? AND email = ?", c.Id, existing.Email).
 					Delete(&xray.ClientTraffic{}).Error; err != nil {
+					return false, err
+				}
+				if err := deleteTrafficMultiplierStates(tx, existing.Email); err != nil {
 					return false, err
 				}
 			}
