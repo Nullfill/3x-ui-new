@@ -63,7 +63,7 @@ func multiplierDisplayPolicy(tx *gorm.DB, email string, global trafficMultiplier
 		}
 	}
 	var policies []struct {
-		Mode string `gorm:"column:mode"`
+		Mode   string  `gorm:"column:mode"`
 		Factor float64 `gorm:"column:factor"`
 	}
 	err := tx.Table("client_inbounds ci").Select("i.traffic_multiplier_mode AS mode, i.traffic_multiplier_factor AS factor").
@@ -223,7 +223,11 @@ func attachTrafficMultiplierUsage(tx *gorm.DB, traffics []xray.ClientTraffic) er
 		traffics[i].MultiplierEnabled = displayConfig.Enabled
 		traffics[i].MultiplierFactor = displayConfig.Factor
 		if source == "client" || source == "inbound" {
-			if displayConfig.Enabled { traffics[i].MultiplierMode = "enabled" } else { traffics[i].MultiplierMode = "disabled" }
+			if displayConfig.Enabled {
+				traffics[i].MultiplierMode = "enabled"
+			} else {
+				traffics[i].MultiplierMode = "disabled"
+			}
 		}
 	}
 	return nil

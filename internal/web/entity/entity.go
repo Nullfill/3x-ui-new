@@ -28,14 +28,14 @@ type AllSetting struct {
 	TrustedProxyCIDRs string `json:"trustedProxyCIDRs" form:"trustedProxyCIDRs"`
 	PanelOutbound     string `json:"panelOutbound" form:"panelOutbound"`
 
-	PageSize                  int    `json:"pageSize" form:"pageSize" validate:"gte=0,lte=1000"`
-	ExpireDiff                int    `json:"expireDiff" form:"expireDiff" validate:"gte=0"`
-	TrafficDiff               int    `json:"trafficDiff" form:"trafficDiff" validate:"gte=0,lte=100"`
-	TrafficMultiplierEnabled bool    `json:"trafficMultiplierEnabled" form:"trafficMultiplierEnabled"`
-	TrafficMultiplierFactor  float64 `json:"trafficMultiplierFactor" form:"trafficMultiplierFactor" validate:"gte=1,lte=10"`
-	RemarkTemplate            string `json:"remarkTemplate" form:"remarkTemplate"`
-	SubShowIdentityOnAllLinks bool   `json:"subShowIdentityOnAllLinks" form:"subShowIdentityOnAllLinks"`
-	Datepicker                string `json:"datepicker" form:"datepicker"`
+	PageSize                  int     `json:"pageSize" form:"pageSize" validate:"gte=0,lte=1000"`
+	ExpireDiff                int     `json:"expireDiff" form:"expireDiff" validate:"gte=0"`
+	TrafficDiff               int     `json:"trafficDiff" form:"trafficDiff" validate:"gte=0,lte=100"`
+	TrafficMultiplierEnabled  bool    `json:"trafficMultiplierEnabled" form:"trafficMultiplierEnabled"`
+	TrafficMultiplierFactor   float64 `json:"trafficMultiplierFactor" form:"trafficMultiplierFactor" validate:"gte=1,lte=10"`
+	RemarkTemplate            string  `json:"remarkTemplate" form:"remarkTemplate"`
+	SubShowIdentityOnAllLinks bool    `json:"subShowIdentityOnAllLinks" form:"subShowIdentityOnAllLinks"`
+	Datepicker                string  `json:"datepicker" form:"datepicker"`
 
 	TgBotEnable     bool   `json:"tgBotEnable" form:"tgBotEnable"`
 	TgBotToken      string `json:"tgBotToken" form:"tgBotToken"`
