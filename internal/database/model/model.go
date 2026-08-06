@@ -57,6 +57,8 @@ type Inbound struct {
 	TrafficResetDay      int                  `json:"trafficResetDay" form:"trafficResetDay" gorm:"default:1" validate:"omitempty,gte=1,lte=31" example:"1"`                                                        // Day of month for monthly traffic resets
 	LastTrafficResetTime int64                `json:"lastTrafficResetTime" form:"lastTrafficResetTime" gorm:"default:0"`                                                                                            // Last traffic reset timestamp
 	ClientStats          []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id" json:"clientStats" form:"clientStats"`                                                                                     // Client traffic statistics
+	TrafficMultiplierMode   string  `json:"trafficMultiplierMode" form:"trafficMultiplierMode" gorm:"default:inherit" validate:"omitempty,oneof=inherit enabled disabled"`
+	TrafficMultiplierFactor float64 `json:"trafficMultiplierFactor" form:"trafficMultiplierFactor" gorm:"default:1" validate:"omitempty,gte=1,lte=10"`
 
 	// Xray configuration fields
 	Listen            string   `json:"listen" form:"listen"`
@@ -882,6 +884,8 @@ type Client struct {
 	Reset        int            `json:"reset" form:"reset"`           // Reset period in days
 	CreatedAt    int64          `json:"created_at,omitempty"`         // Creation timestamp
 	UpdatedAt    int64          `json:"updated_at,omitempty"`         // Last update timestamp
+	TrafficMultiplierMode   string  `json:"trafficMultiplierMode,omitempty" form:"trafficMultiplierMode"`
+	TrafficMultiplierFactor float64 `json:"trafficMultiplierFactor,omitempty" form:"trafficMultiplierFactor"`
 }
 
 type ClientRecord struct {
@@ -911,6 +915,8 @@ type ClientRecord struct {
 	Reset        int    `json:"reset" gorm:"default:0"`
 	CreatedAt    int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
 	UpdatedAt    int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+	TrafficMultiplierMode   string  `json:"trafficMultiplierMode" gorm:"column:traffic_multiplier_mode;default:inherit"`
+	TrafficMultiplierFactor float64 `json:"trafficMultiplierFactor" gorm:"column:traffic_multiplier_factor;default:1"`
 	// Owned solely by the node-snapshot sweep, which soft-orphans instead of
 	// deleting; orphans from any other cause stay at zero and are never reaped.
 	SyncOrphanedAt int64 `json:"-" gorm:"column:sync_orphaned_at;default:0"`
@@ -1078,6 +1084,8 @@ func (c *Client) ToRecord() *ClientRecord {
 		Reset:      c.Reset,
 		CreatedAt:  c.CreatedAt,
 		UpdatedAt:  c.UpdatedAt,
+		TrafficMultiplierMode:   c.TrafficMultiplierMode,
+		TrafficMultiplierFactor: c.TrafficMultiplierFactor,
 
 		PrivateKey:   c.PrivateKey,
 		PublicKey:    c.PublicKey,
@@ -1131,6 +1139,8 @@ func (r *ClientRecord) ToClient() *Client {
 		Reset:      r.Reset,
 		CreatedAt:  r.CreatedAt,
 		UpdatedAt:  r.UpdatedAt,
+		TrafficMultiplierMode:   r.TrafficMultiplierMode,
+		TrafficMultiplierFactor: r.TrafficMultiplierFactor,
 
 		PrivateKey:   r.PrivateKey,
 		PublicKey:    r.PublicKey,
@@ -1243,6 +1253,17 @@ func MergeClientRecord(existing *ClientRecord, incoming *ClientRecord) []ClientM
 		if picked != existing.ExpiryTime {
 			keep("expiryTime", existing.ExpiryTime, incoming.ExpiryTime, picked)
 			existing.ExpiryTime = picked
+		}
+	}
+	if existing.TrafficMultiplierMode != incoming.TrafficMultiplierMode && incoming.TrafficMultiplierMode != "" {
+		if incomingNewer || existing.TrafficMultiplierMode == "" || existing.TrafficMultiplierMode == "inherit" {
+			keep("trafficMultiplierMode", existing.TrafficMultiplierMode, incoming.TrafficMultiplierMode, incoming.TrafficMultiplierMode)
+			existing.TrafficMultiplierMode = incoming.TrafficMultiplierMode
+		}
+	}
+	if incoming.TrafficMultiplierFactor >= 1 && incoming.TrafficMultiplierFactor <= 10 && incoming.TrafficMultiplierFactor != existing.TrafficMultiplierFactor {
+		if incomingNewer || existing.TrafficMultiplierFactor == 0 || existing.TrafficMultiplierMode == "inherit" {
+			existing.TrafficMultiplierFactor = incoming.TrafficMultiplierFactor
 		}
 	}
 	if existing.LimitIP != incoming.LimitIP && incoming.LimitIP != 0 {

@@ -48,6 +48,8 @@ export interface RawInboundRow {
   shareAddr?: string;
   subSortIndex?: number;
   clientStats?: unknown;
+  trafficMultiplierMode?: 'inherit' | 'enabled' | 'disabled';
+  trafficMultiplierFactor?: number;
 }
 
 // The wire payload — settings/streamSettings/sniffing arrive as JSON
@@ -75,6 +77,8 @@ export interface WireInboundPayload {
   shareAddrStrategy: ShareAddrStrategy;
   shareAddr: string;
   subSortIndex: number;
+  trafficMultiplierMode: 'inherit' | 'enabled' | 'disabled';
+  trafficMultiplierFactor: number;
 }
 
 function coerceJsonObject(value: unknown): Record<string, unknown> {
@@ -210,6 +214,8 @@ export function rawInboundToFormValues(row: RawInboundRow): InboundFormValues {
     shareAddrStrategy: coerceShareAddrStrategy(row.shareAddrStrategy),
     shareAddr: row.shareAddr ?? '',
     subSortIndex: Math.max(1, row.subSortIndex ?? 1),
+    trafficMultiplierMode: row.trafficMultiplierMode ?? 'inherit',
+    trafficMultiplierFactor: row.trafficMultiplierFactor || 1,
     protocol,
     settings,
   } as InboundFormValues;
@@ -361,6 +367,8 @@ export function formValuesToWirePayload(values: InboundFormValues): WireInboundP
     shareAddrStrategy: values.shareAddrStrategy,
     shareAddr: values.shareAddr,
     subSortIndex: values.subSortIndex,
+    trafficMultiplierMode: values.trafficMultiplierMode,
+    trafficMultiplierFactor: values.trafficMultiplierFactor,
   };
   if (values.nodeId != null) payload.nodeId = values.nodeId;
   return payload;

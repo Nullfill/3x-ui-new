@@ -133,6 +133,8 @@ const EMPTY: Values = {
   wgAllowedIPs: '',
   secret: '',
   adTag: '',
+  trafficMultiplierMode: 'inherit',
+  trafficMultiplierFactor: 1,
 };
 
 function toExternalLinkRows(links: ExternalLink[] | undefined): ExternalLinkRow[] {
@@ -188,6 +190,7 @@ export default function ClientFormModal({
   const email = useWatch({ control: methods.control, name: 'email' });
   const uuid = useWatch({ control: methods.control, name: 'uuid' });
   const password = useWatch({ control: methods.control, name: 'password' });
+  const trafficMultiplierMode = useWatch({ control: methods.control, name: 'trafficMultiplierMode' });
   const subId = useWatch({ control: methods.control, name: 'subId' });
   const auth = useWatch({ control: methods.control, name: 'auth' });
   const wgPrivateKey = useWatch({ control: methods.control, name: 'wgPrivateKey' });
@@ -245,6 +248,8 @@ export default function ClientFormModal({
         wgAllowedIPs: client.allowedIPs || '',
         secret: client.secret || '',
         adTag: client.adTag || '',
+        trafficMultiplierMode: client.trafficMultiplierMode || 'inherit',
+        trafficMultiplierFactor: client.trafficMultiplierFactor || 1,
       };
       if (et < 0) {
         seed.delayedStart = true;
@@ -496,6 +501,8 @@ export default function ClientFormModal({
       comment: values.comment,
       enable: values.enable,
       inboundIds: values.inboundIds,
+      trafficMultiplierMode: values.trafficMultiplierMode,
+      trafficMultiplierFactor: values.trafficMultiplierFactor,
     });
     if (!validated.success) {
       const issue = validated.error.issues[0];
@@ -522,6 +529,8 @@ export default function ClientFormModal({
       group: values.group,
       comment: values.comment,
       enable: !!values.enable,
+      trafficMultiplierMode: values.trafficMultiplierMode,
+      trafficMultiplierFactor: Number(values.trafficMultiplierFactor) || 1,
     };
     const reverseTagValue = showReverseTag ? (values.reverseTag || '').trim() : '';
     if (reverseTagValue) {
@@ -767,6 +776,27 @@ export default function ClientFormModal({
                           )}
                         </Row>
                       )}
+
+                      <Row gutter={16}>
+                        <Col xs={24} md={12}>
+                          <FormField name="trafficMultiplierMode" label={t('pages.settings.trafficMultiplierEnabled')}>
+                            <Select options={[
+                              { value: 'inherit', label: t('pages.clients.multiplierInherit') },
+                              { value: 'enabled', label: t('enabled') },
+                              { value: 'disabled', label: t('disabled') },
+                            ]} />
+                          </FormField>
+                        </Col>
+                        <Col xs={24} md={12}>
+                          <FormField
+                            name="trafficMultiplierFactor"
+                            label={t('pages.settings.trafficMultiplierFactor')}
+                            transform={{ output: (v) => Number(v) || 1 }}
+                          >
+                            <InputNumber min={1} max={10} step={0.1} disabled={trafficMultiplierMode !== 'enabled'} style={{ width: '100%' }} />
+                          </FormField>
+                        </Col>
+                      </Row>
 
                       <Form.Item label={t('pages.clients.attachedInbounds')} required={!isEdit}>
                         <SelectAllClearButtons

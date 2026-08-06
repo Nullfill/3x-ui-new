@@ -15,4 +15,12 @@ type ClientTraffic struct {
 	Total      int64  `json:"total" form:"total" example:"10737418240"`
 	Reset      int    `json:"reset" form:"reset" gorm:"default:0;index:idx_client_traffics_renew,priority:2" example:"0"`
 	LastOnline int64  `json:"lastOnline" form:"lastOnline" gorm:"default:0" example:"1735680000000"`
+	MultiplierExtraUp   int64   `json:"multiplierExtraUp" gorm:"-"`
+	MultiplierExtraDown int64   `json:"multiplierExtraDown" gorm:"-"`
+	MultiplierFactor    float64 `json:"multiplierFactor" gorm:"-"`
+	MultiplierEnabled   bool    `json:"multiplierEnabled" gorm:"-"`
+	RawUp                int64   `json:"rawUp" gorm:"-"`
+	RawDown              int64   `json:"rawDown" gorm:"-"`
+	MultiplierMode       string  `json:"multiplierMode" gorm:"-"`
+	MultiplierSource     string  `json:"multiplierSource" gorm:"-"`
 }

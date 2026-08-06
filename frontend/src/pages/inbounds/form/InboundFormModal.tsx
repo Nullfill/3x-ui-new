@@ -257,6 +257,7 @@ export default function InboundFormModal({
   const wTotal = (useWatch({ control, name: 'total' }) as number | undefined) ?? 0;
   const wExpiry = (useWatch({ control, name: 'expiryTime' }) as number | undefined) ?? 0;
   const trafficReset = useWatch({ control, name: 'trafficReset' }) ?? 'never';
+  const trafficMultiplierMode = useWatch({ control, name: 'trafficMultiplierMode' }) ?? 'inherit';
   const autoTagRef = useRef(true);
   const lastWrittenTagRef = useRef('');
   const currentTagInput = (): InboundTagInput => ({
@@ -519,6 +520,22 @@ export default function InboundFormModal({
     <>
       <FormField name="enable" label={t('enable')} valueProp="checked">
         <Switch />
+      </FormField>
+
+      <FormField name="trafficMultiplierMode" label={t('pages.settings.trafficMultiplierEnabled')}>
+        <Select options={[
+          { value: 'inherit', label: t('pages.clients.multiplierInherit') },
+          { value: 'enabled', label: t('enabled') },
+          { value: 'disabled', label: t('disabled') },
+        ]} />
+      </FormField>
+
+      <FormField
+        name="trafficMultiplierFactor"
+        label={t('pages.settings.trafficMultiplierFactor')}
+        transform={{ output: (v) => Number(v) || 1 }}
+      >
+        <InputNumber min={1} max={10} step={0.1} disabled={trafficMultiplierMode !== 'enabled'} style={{ width: '100%' }} />
       </FormField>
 
       <FormField name="remark" label={t('pages.inbounds.remark')}>

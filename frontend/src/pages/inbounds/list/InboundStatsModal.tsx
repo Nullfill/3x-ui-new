@@ -112,6 +112,16 @@ export default function InboundStatsModal({
               {record.total > 0 ? SizeFormatter.sizeFormat(record.total) : <InfinityIcon />}
             </Tag>
           </div>
+          <div className="stat-row">
+            <span className="stat-label">{t('pages.clients.multiplierUsage')}</span>
+            <Tag color={record.trafficMultiplierMode === 'enabled' ? 'blue' : record.trafficMultiplierMode === 'disabled' ? 'default' : 'purple'}>
+              {record.trafficMultiplierMode === 'enabled'
+                ? `×${record.trafficMultiplierFactor || 1}`
+                : record.trafficMultiplierMode === 'disabled'
+                  ? t('disabled')
+                  : t('pages.clients.multiplierInherit')}
+            </Tag>
+          </div>
           {(() => {
             const speed = inboundSpeed[record.id];
             if (!isActiveSpeed(speed)) return null;

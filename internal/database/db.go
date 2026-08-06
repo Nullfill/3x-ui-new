@@ -105,6 +105,11 @@ func initModels() error {
 	if err := dropLegacyInboundPortUnique(); err != nil {
 		return err
 	}
+	if db.Migrator().HasIndex(&model.TrafficMultiplierState{}, "idx_multiplier_source_email") {
+		if err := db.Migrator().DropIndex(&model.TrafficMultiplierState{}, "idx_multiplier_source_email"); err != nil {
+			return err
+		}
+	}
 	if err := migrateHostVerifyPeerCertByNameColumn(); err != nil {
 		return err
 	}

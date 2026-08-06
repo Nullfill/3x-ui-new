@@ -33,6 +33,26 @@
   margin-left: 6px;
 }
 
+@media (max-width: 600px) {
+  .info-table tr {
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid var(--ant-color-border-secondary);
+    padding: 6px 0;
+  }
+  .info-table td:first-child {
+    width: auto;
+    white-space: normal;
+  }
+  .hint {
+    display: block;
+    margin-left: 0;
+    margin-inline-start: 0;
+    margin-top: 4px;
+    overflow-wrap: anywhere;
+  }
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;

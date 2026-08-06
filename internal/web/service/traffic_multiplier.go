@@ -8,6 +8,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
 	"github.com/mhsanaei/3x-ui/v3/internal/logger"
+	"github.com/mhsanaei/3x-ui/v3/internal/xray"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -16,6 +17,75 @@ import (
 type trafficMultiplierConfig struct {
 	Enabled bool
 	Factor  float64
+}
+
+func effectiveTrafficMultiplier(tx *gorm.DB, inboundID int, email string) (trafficMultiplierConfig, error) {
+	global, err := loadTrafficMultiplierConfig(tx)
+	if err != nil {
+		return global, err
+	}
+	var client model.ClientRecord
+	if email != "" && tx.Select("traffic_multiplier_mode, traffic_multiplier_factor").Where("email = ?", email).First(&client).Error == nil {
+		switch client.TrafficMultiplierMode {
+		case "disabled":
+			return trafficMultiplierConfig{Factor: 1}, nil
+		case "enabled":
+			return trafficMultiplierConfig{Enabled: true, Factor: validMultiplierFactor(client.TrafficMultiplierFactor)}, nil
+		}
+	}
+	var inbound model.Inbound
+	if inboundID > 0 && tx.Select("traffic_multiplier_mode, traffic_multiplier_factor").First(&inbound, inboundID).Error == nil {
+		switch inbound.TrafficMultiplierMode {
+		case "disabled":
+			return trafficMultiplierConfig{Factor: 1}, nil
+		case "enabled":
+			return trafficMultiplierConfig{Enabled: true, Factor: validMultiplierFactor(inbound.TrafficMultiplierFactor)}, nil
+		}
+	}
+	return global, nil
+}
+
+func validMultiplierFactor(f float64) float64 {
+	if f < 1 || f > 10 || math.IsNaN(f) || math.IsInf(f, 0) {
+		return 1
+	}
+	return f
+}
+
+func multiplierDisplayPolicy(tx *gorm.DB, email string, global trafficMultiplierConfig) (trafficMultiplierConfig, string) {
+	var client model.ClientRecord
+	if tx.Select("traffic_multiplier_mode, traffic_multiplier_factor").Where("email = ?", email).First(&client).Error == nil {
+		if client.TrafficMultiplierMode == "disabled" {
+			return trafficMultiplierConfig{Factor: 1}, "client"
+		}
+		if client.TrafficMultiplierMode == "enabled" {
+			return trafficMultiplierConfig{Enabled: true, Factor: validMultiplierFactor(client.TrafficMultiplierFactor)}, "client"
+		}
+	}
+	var policies []struct {
+		Mode string `gorm:"column:mode"`
+		Factor float64 `gorm:"column:factor"`
+	}
+	err := tx.Table("client_inbounds ci").Select("i.traffic_multiplier_mode AS mode, i.traffic_multiplier_factor AS factor").
+		Joins("JOIN clients c ON c.id = ci.client_id JOIN inbounds i ON i.id = ci.inbound_id").
+		Where("c.email = ? AND i.traffic_multiplier_mode <> '' AND i.traffic_multiplier_mode <> 'inherit'", email).Scan(&policies).Error
+	if err == nil && len(policies) > 0 {
+		first, allSame := policies[0], true
+		for _, p := range policies[1:] {
+			if p.Mode != first.Mode || validMultiplierFactor(p.Factor) != validMultiplierFactor(first.Factor) {
+				allSame = false
+				break
+			}
+		}
+		if allSame {
+			if first.Mode == "enabled" {
+				return trafficMultiplierConfig{Enabled: true, Factor: validMultiplierFactor(first.Factor)}, "inbound"
+			}
+			return trafficMultiplierConfig{Factor: 1}, "inbound"
+		}
+		return trafficMultiplierConfig{Enabled: true, Factor: global.Factor}, "mixed"
+	}
+	return global, "global"
 }
 
 func loadTrafficMultiplierConfig(tx *gorm.DB) (trafficMultiplierConfig, error) {
@@ -60,7 +130,7 @@ func multipliedTrafficDelta(up, down int64, config trafficMultiplierConfig) (int
 // billed delta and advances its independent persistent state. currentRaw is nil
 // for the local Xray delta stream and the cumulative node counter for a remote
 // source.
-func applyTrafficMultiplier(tx *gorm.DB, config trafficMultiplierConfig, sourceNodeID int, email string, rawUp, rawDown int64, currentRaw *nodeTrafficCounter) (int64, int64, error) {
+func applyTrafficMultiplier(tx *gorm.DB, config trafficMultiplierConfig, sourceNodeID, inboundID int, email string, rawUp, rawDown int64, currentRaw *nodeTrafficCounter) (int64, int64, error) {
 	if rawUp < 0 || rawDown < 0 {
 		logger.Warningf("Traffic multiplier skipped suspicious negative delta for %q source %d", email, sourceNodeID)
 		return 0, 0, nil
@@ -68,13 +138,14 @@ func applyTrafficMultiplier(tx *gorm.DB, config trafficMultiplierConfig, sourceN
 
 	var state model.TrafficMultiplierState
 	err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-		Where("source_node_id = ? AND client_email = ?", sourceNodeID, email).First(&state).Error
+		Where("source_node_id = ? AND inbound_id = ? AND client_email = ?", sourceNodeID, inboundID, email).First(&state).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return 0, 0, err
 	}
 	newState := errors.Is(err, gorm.ErrRecordNotFound)
 	if newState {
 		state.SourceNodeId = sourceNodeID
+		state.InboundId = inboundID
 		state.ClientEmail = email
 		state.Factor = config.Factor
 		state.Enabled = config.Enabled
@@ -95,12 +166,67 @@ func applyTrafficMultiplier(tx *gorm.DB, config trafficMultiplierConfig, sourceN
 	billedUp, billedDown := multipliedTrafficDelta(rawUp, rawDown, config)
 	state.LastBilledUp += billedUp
 	state.LastBilledDown += billedDown
+	extraUp, extraDown := multiplierExtraDelta(rawUp, rawDown, billedUp, billedDown)
+	state.ExtraUp += extraUp
+	state.ExtraDown += extraDown
 	state.Factor = config.Factor
 	state.Enabled = config.Enabled
 	if err := tx.Save(&state).Error; err != nil {
 		return 0, 0, err
 	}
 	return billedUp, billedDown, nil
+}
+
+func multiplierExtraDelta(rawUp, rawDown, billedUp, billedDown int64) (int64, int64) {
+	return max(billedUp-rawUp, 0), max(billedDown-rawDown, 0)
+}
+
+func attachTrafficMultiplierUsage(tx *gorm.DB, traffics []xray.ClientTraffic) error {
+	if len(traffics) == 0 {
+		return nil
+	}
+	emails := make([]string, 0, len(traffics))
+	for i := range traffics {
+		if traffics[i].Email != "" {
+			emails = append(emails, traffics[i].Email)
+		}
+	}
+	config, err := loadTrafficMultiplierConfig(tx)
+	if err != nil {
+		return err
+	}
+	var states []model.TrafficMultiplierState
+	for _, batch := range chunkStrings(uniqueNonEmptyStrings(emails), sqlInChunk) {
+		var page []model.TrafficMultiplierState
+		if err := tx.Where("client_email IN ?", batch).Find(&page).Error; err != nil {
+			return err
+		}
+		states = append(states, page...)
+	}
+	type extraTraffic struct{ up, down int64 }
+	extraByEmail := make(map[string]extraTraffic, len(states))
+	for i := range states {
+		current := extraByEmail[states[i].ClientEmail]
+		current.up += states[i].ExtraUp
+		current.down += states[i].ExtraDown
+		extraByEmail[states[i].ClientEmail] = current
+	}
+	for i := range traffics {
+		extra := extraByEmail[traffics[i].Email]
+		traffics[i].MultiplierExtraUp = extra.up
+		traffics[i].MultiplierExtraDown = extra.down
+		traffics[i].RawUp = max(traffics[i].Up-extra.up, 0)
+		traffics[i].RawDown = max(traffics[i].Down-extra.down, 0)
+		displayConfig, source := multiplierDisplayPolicy(tx, traffics[i].Email, config)
+		traffics[i].MultiplierMode = "inherit"
+		traffics[i].MultiplierSource = source
+		traffics[i].MultiplierEnabled = displayConfig.Enabled
+		traffics[i].MultiplierFactor = displayConfig.Factor
+		if source == "client" || source == "inbound" {
+			if displayConfig.Enabled { traffics[i].MultiplierMode = "enabled" } else { traffics[i].MultiplierMode = "disabled" }
+		}
+	}
+	return nil
 }
 
 func refreshTrafficMultiplierConfiguration(db *gorm.DB, enabled bool, factor float64) error {

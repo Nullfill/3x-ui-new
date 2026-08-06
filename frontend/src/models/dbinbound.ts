@@ -46,6 +46,8 @@ export type DBInboundInit = Partial<{
     subSortIndex: number;
     originNodeGuid: string;
     fallbackParent: FallbackParentRef | null;
+    trafficMultiplierMode: 'inherit' | 'enabled' | 'disabled';
+    trafficMultiplierFactor: number;
 }>;
 
 export function coerceInboundJsonField(value: unknown): Record<string, unknown> {
@@ -94,6 +96,8 @@ export class DBInbound {
     subSortIndex: number;
     originNodeGuid: string;
     fallbackParent: FallbackParentRef | null;
+    trafficMultiplierMode: 'inherit' | 'enabled' | 'disabled';
+    trafficMultiplierFactor: number;
 
     private _clientStatsMap: Map<string, ClientStats> | null = null;
 
@@ -124,6 +128,8 @@ export class DBInbound {
         this.subSortIndex = 1;
         this.originNodeGuid = "";
         this.fallbackParent = null;
+        this.trafficMultiplierMode = 'inherit';
+        this.trafficMultiplierFactor = 1;
         if (data == null) {
             return;
         }

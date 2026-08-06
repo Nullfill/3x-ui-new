@@ -446,6 +446,9 @@ func (q clientQuery) pageRows(params ClientPageParams, onlines []string, offset,
 			return nil, err
 		}
 		overlayGlobalTrafficValues(q.db, stats)
+		if err := attachTrafficMultiplierUsage(q.db, stats); err != nil {
+			return nil, err
+		}
 		for i := range stats {
 			trafficByEmail[stats[i].Email] = &stats[i]
 		}

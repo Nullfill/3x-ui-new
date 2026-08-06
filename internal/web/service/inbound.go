@@ -28,6 +28,21 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+func normalizeTrafficMultiplierPolicy(inbound *model.Inbound) {
+	if inbound == nil {
+		return
+	}
+	if inbound.TrafficMultiplierMode == "" {
+		inbound.TrafficMultiplierMode = "inherit"
+	}
+	if inbound.TrafficMultiplierMode != "inherit" && inbound.TrafficMultiplierMode != "enabled" && inbound.TrafficMultiplierMode != "disabled" {
+		inbound.TrafficMultiplierMode = "inherit"
+	}
+	if inbound.TrafficMultiplierFactor < 1 || inbound.TrafficMultiplierFactor > 10 {
+		inbound.TrafficMultiplierFactor = 1
+	}
+}
+
 type InboundService struct {
 	xrayApi         xray.XrayAPI
 	clientService   ClientService
@@ -913,6 +928,7 @@ func (s *InboundService) normalizeMtprotoXrayPort(inbound *model.Inbound, oldSet
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	inbound.Id = 0
 	inbound.TrafficResetDay = normalizeTrafficResetDay(inbound.TrafficResetDay)
+	normalizeTrafficMultiplierPolicy(inbound)
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	if err := validateFinalMaskRealityCombo(inbound.StreamSettings); err != nil {
@@ -1340,6 +1356,7 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	inbound.TrafficResetDay = normalizeTrafficResetDay(inbound.TrafficResetDay)
+	normalizeTrafficMultiplierPolicy(inbound)
 	// Normalize streamSettings based on protocol
 	s.normalizeStreamSettings(inbound)
 	if err := validateFinalMaskRealityCombo(inbound.StreamSettings); err != nil {
