@@ -309,6 +309,14 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 0,
         "type": "integer"
       },
+      "trafficMultiplierEnabled": {
+        "type": "boolean"
+      },
+      "trafficMultiplierFactor": {
+        "maximum": 10,
+        "minimum": 1,
+        "type": "number"
+      },
       "trustedProxyCIDRs": {
         "type": "string"
       },
@@ -437,6 +445,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "tgRunTime",
       "timeLocation",
       "trafficDiff",
+      "trafficMultiplierEnabled",
+      "trafficMultiplierFactor",
       "trustedProxyCIDRs",
       "twoFactorEnable",
       "twoFactorToken",
@@ -780,6 +790,14 @@ export const SCHEMAS: Record<string, unknown> = {
         "minimum": 0,
         "type": "integer"
       },
+      "trafficMultiplierEnabled": {
+        "type": "boolean"
+      },
+      "trafficMultiplierFactor": {
+        "maximum": 10,
+        "minimum": 1,
+        "type": "number"
+      },
       "trustedProxyCIDRs": {
         "type": "string"
       },
@@ -915,6 +933,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "tgRunTime",
       "timeLocation",
       "trafficDiff",
+      "trafficMultiplierEnabled",
+      "trafficMultiplierFactor",
       "trustedProxyCIDRs",
       "twoFactorEnable",
       "twoFactorToken",
@@ -1095,6 +1115,12 @@ export const SCHEMAS: Record<string, unknown> = {
         "format": "int64",
         "type": "integer"
       },
+      "trafficMultiplierFactor": {
+        "type": "number"
+      },
+      "trafficMultiplierMode": {
+        "type": "string"
+      },
       "updated_at": {
         "description": "Last update timestamp",
         "format": "int64",
@@ -1215,6 +1241,12 @@ export const SCHEMAS: Record<string, unknown> = {
         "format": "int64",
         "type": "integer"
       },
+      "trafficMultiplierFactor": {
+        "type": "number"
+      },
+      "trafficMultiplierMode": {
+        "type": "string"
+      },
       "updatedAt": {
         "format": "int64",
         "type": "integer"
@@ -1248,6 +1280,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "subId",
       "tgId",
       "totalGB",
+      "trafficMultiplierFactor",
+      "trafficMultiplierMode",
       "updatedAt",
       "uuid"
     ],
@@ -1298,6 +1332,34 @@ export const SCHEMAS: Record<string, unknown> = {
         "format": "int64",
         "type": "integer"
       },
+      "multiplierEnabled": {
+        "type": "boolean"
+      },
+      "multiplierExtraDown": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "multiplierExtraUp": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "multiplierFactor": {
+        "type": "number"
+      },
+      "multiplierMode": {
+        "type": "string"
+      },
+      "multiplierSource": {
+        "type": "string"
+      },
+      "rawDown": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "rawUp": {
+        "format": "int64",
+        "type": "integer"
+      },
       "reset": {
         "example": 0,
         "type": "integer"
@@ -1329,6 +1391,14 @@ export const SCHEMAS: Record<string, unknown> = {
       "id",
       "inboundId",
       "lastOnline",
+      "multiplierEnabled",
+      "multiplierExtraDown",
+      "multiplierExtraUp",
+      "multiplierFactor",
+      "multiplierMode",
+      "multiplierSource",
+      "rawDown",
+      "rawUp",
       "reset",
       "subId",
       "total",
@@ -1831,6 +1901,19 @@ export const SCHEMAS: Record<string, unknown> = {
         "format": "int64",
         "type": "integer"
       },
+      "trafficMultiplierFactor": {
+        "maximum": 10,
+        "minimum": 1,
+        "type": "number"
+      },
+      "trafficMultiplierMode": {
+        "enum": [
+          "inherit",
+          "enabled",
+          "disabled"
+        ],
+        "type": "string"
+      },
       "trafficReset": {
         "description": "Traffic reset schedule",
         "enum": [
@@ -1874,6 +1957,8 @@ export const SCHEMAS: Record<string, unknown> = {
       "subSortIndex",
       "tag",
       "total",
+      "trafficMultiplierFactor",
+      "trafficMultiplierMode",
       "trafficReset",
       "trafficResetDay",
       "up"

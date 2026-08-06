@@ -78,10 +78,10 @@ To update an existing installation to the latest stable multiplier release:
 bash <(curl -Ls https://raw.githubusercontent.com/Nullfill/3x-ui-new/main/update.sh)
 ```
 
-To install a specific version, append its tag (e.g. `v3.6.0-multiplier-1`):
+To install a specific version, append its tag (e.g. `v3.6.0-multiplier-2`):
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/Nullfill/3x-ui-new/main/install.sh) v3.6.0-multiplier-1
+bash <(curl -Ls https://raw.githubusercontent.com/Nullfill/3x-ui-new/main/install.sh) v3.6.0-multiplier-2
 ```
 
 To install the rolling **dev** build (latest per-commit pre-release from `main`, not a stable release), pass `dev-latest`:

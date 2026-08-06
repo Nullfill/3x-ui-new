@@ -100,6 +100,8 @@ export interface AllSetting {
   tgRunTime: string;
   timeLocation: string;
   trafficDiff: number;
+  trafficMultiplierEnabled: boolean;
+  trafficMultiplierFactor: number;
   trustedProxyCIDRs: string;
   twoFactorEnable: boolean;
   twoFactorToken: string;
@@ -213,6 +215,8 @@ export interface AllSettingView {
   tgRunTime: string;
   timeLocation: string;
   trafficDiff: number;
+  trafficMultiplierEnabled: boolean;
+  trafficMultiplierFactor: number;
   trustedProxyCIDRs: string;
   twoFactorEnable: boolean;
   twoFactorToken: string;
@@ -266,6 +270,8 @@ export interface Client {
   subId: string;
   tgId: number;
   totalGB: number;
+  trafficMultiplierFactor?: number;
+  trafficMultiplierMode?: string;
   updated_at?: number;
 }
 
@@ -301,6 +307,8 @@ export interface ClientRecord {
   subId: string;
   tgId: number;
   totalGB: number;
+  trafficMultiplierFactor: number;
+  trafficMultiplierMode: string;
   updatedAt: number;
   uuid: string;
 }
@@ -317,6 +325,14 @@ export interface ClientTraffic {
   id: number;
   inboundId: number;
   lastOnline: number;
+  multiplierEnabled: boolean;
+  multiplierExtraDown: number;
+  multiplierExtraUp: number;
+  multiplierFactor: number;
+  multiplierMode: string;
+  multiplierSource: string;
+  rawDown: number;
+  rawUp: number;
   reset: number;
   subId: string;
   total: number;
@@ -427,6 +443,8 @@ export interface Inbound {
   subSortIndex: number;
   tag: string;
   total: number;
+  trafficMultiplierFactor: number;
+  trafficMultiplierMode: string;
   trafficReset: string;
   trafficResetDay: number;
   up: number;
